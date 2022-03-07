@@ -56,6 +56,8 @@ def check_compiles(input, expected):
         # traceback.print_exc()
         raise
 
+    output = output.strip()
+
     if expected != output:
         debug(php_ast)
         print("py_ast=", dump(py_ast, indent=2))

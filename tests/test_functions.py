@@ -23,6 +23,18 @@ def test_function_with_args():
     check_compiles(input, expected)
 
 
+def test_more_function_calls():
+    input = r"""<?php
+        # doit($arg1, &$arg2, 3 + 4);
+        name\spaced();
+        \name\spaced();
+        namespace\d();
+    ?>"""
+    # FIXME: namespaces
+    expected = "name()\n" "name()\n" "d()"
+    check_compiles(input, expected)
+
+
 def xtest_function2():
     input = """<?php
         /**

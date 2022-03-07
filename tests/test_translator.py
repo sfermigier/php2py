@@ -29,7 +29,6 @@ def test_expressions():
 def test_exit():
     input = "<?php exit; exit(); exit(123); die; die(); die(456); ?>"
     expected = (
-        "\n"
         "raise SystemExit()\n"
         "\n"
         "raise SystemExit()\n"
@@ -63,7 +62,7 @@ def test_assign():
         $b = +2;
         $c = -3;
     ?>"""
-    expected = "\n" "a = 1\n" "\n" "b = +2\n" "\n" "c = -3"
+    expected = "a = 1\n" "\n" "b = +2\n" "\n" "c = -3"
     check_compiles(input, expected)
 
 
@@ -72,7 +71,7 @@ def test_assign2():
         $c = !$d;
         $e = ~$f;
     ?>"""
-    expected = "\n" "c = not d\n" "\n" "e = ~f"
+    expected = "c = not d\n" "\n" "e = ~f"
     check_compiles(input, expected)
 
 
@@ -83,7 +82,7 @@ def test_assignment_ops():
         $c .= $d;
         $e ^= $f;
     ?>"""
-    expected = "\n" "xxx += 5\n" "\n" "xxx -= 6\n" "\n" "xxx += d\n" "\n" "xxx ^= f"
+    expected = "xxx += 5\n" "\n" "xxx -= 6\n" "\n" "xxx += d\n" "\n" "xxx ^= f"
     check_compiles(input, expected)
 
 
@@ -96,7 +95,6 @@ def test_constants():
         $e = Null;
     ?>"""
     expected = (
-        "\n"
         "a = True\n"
         "\n"
         "b = True\n"
@@ -141,16 +139,25 @@ def test_object_properties():
 
 def test_array():
     input = r"""<?php
-    $l = [1, 2, 3];
-    $l = ['a', 1.2, [null, true, false]];
-    $d = [1 => 2, 'a' => 'b'];
+        $l = [1, 2, 3];
+        $l = ['a', 1.2, [null, true, false]];
+        $d = [1 => 2, 'a' => 'b'];
     """
     expected = (
-        "\n"
         "l = [1, 2, 3]\n"
         "\n"
         "l = ['a', 1.2, [None, True, False]]\n"
         "\n"
         "d = {1: 2, 'a': 'b'}"
     )
+    check_compiles(input, expected)
+
+
+def test_unset_isset():
+    input = r"""<?php
+        $x = 1;
+        isset($x);
+        unset($x);
+    """
+    expected = "x = 1\n" "'x' in vars()\n" "del x"
     check_compiles(input, expected)

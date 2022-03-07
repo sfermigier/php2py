@@ -8,18 +8,22 @@ from devtools import debug
 from php2py.php_ast import (
     Const,
     Expr_Array,
+    Expr_ArrayDimFetch,
     Expr_ArrayItem,
     Expr_Assign,
     Expr_AssignOp_BitwiseXor,
     Expr_AssignOp_Concat,
     Expr_AssignOp_Minus,
     Expr_AssignOp_Plus,
-    Expr_BinaryOp_Div,
-    Expr_BinaryOp_Minus,
-    Expr_BinaryOp_Mul,
-    Expr_BinaryOp_Plus,
-    Expr_BitwiseNot,
-    Expr_BooleanNot,
+    Expr_BinaryOp,
+    Expr_Cast,
+    Expr_Cast_Array,
+    Expr_Cast_Bool,
+    Expr_Cast_Double,
+    Expr_Cast_Int,
+    Expr_Cast_Object,
+    Expr_Cast_String,
+    Expr_ClassConstFetch,
     Expr_ConstFetch,
     Expr_Exit,
     Expr_FuncCall,
@@ -28,8 +32,8 @@ from php2py.php_ast import (
     Expr_New,
     Expr_PropertyFetch,
     Expr_StaticCall,
-    Expr_UnaryMinus,
-    Expr_UnaryPlus,
+    Expr_Ternary,
+    Expr_UnaryOp,
     Expr_Variable,
     Identifier,
     Name,
@@ -48,11 +52,13 @@ from php2py.php_ast import (
     Stmt_Foreach,
     Stmt_Function,
     Stmt_If,
+    Stmt_InlineHTML,
     Stmt_Namespace,
     Stmt_Nop,
     Stmt_Property,
     Stmt_Return,
     Stmt_Throw,
+    Stmt_Unset,
     Stmt_Use,
     Stmt_While,
 )
@@ -64,26 +70,8 @@ unary_ops = {
     "-": py.USub,
 }
 
-bool_ops = {
-    "&&": py.And,
-    "||": py.Or,
-    "and": py.And,
-    "or": py.Or,
-}
-
-cmp_ops = {
-    "!=": py.NotEq,
-    "!==": py.NotEq,
-    "<>": py.NotEq,
-    "<": py.Lt,
-    "<=": py.LtE,
-    "==": py.Eq,
-    "===": py.Eq,
-    ">": py.Gt,
-    ">=": py.GtE,
-}
-
 binary_ops = {
+    # Numbers
     "+": py.Add,
     "-": py.Sub,
     "*": py.Mult,
@@ -94,13 +82,30 @@ binary_ops = {
     "|": py.BitOr,
     "&": py.BitAnd,
     "^": py.BitXor,
+    # Bool
+    "&&": py.And,
+    "||": py.Or,
+    "and": py.And,
+    "or": py.Or,
+    # Compare
+    "!=": py.NotEq,
+    "!==": py.IsNot,
+    "<>": py.NotEq,
+    "<": py.Lt,
+    "<=": py.LtE,
+    "==": py.Eq,
+    "===": py.Is,
+    ">": py.Gt,
+    ">=": py.GtE,
+    # Strings
+    ".": py.Add,
 }
 
-casts = {
-    "double": "float",
-    "string": "str",
-    "array": "list",
-}
+# casts = {
+#     "double": "float",
+#     "string": "str",
+#     "array": "list",
+# }
 
 
 class Translator:
@@ -108,7 +113,7 @@ class Translator:
         return py.Module(body=[self.translate(n) for n in root_node], type_ignores=[])
 
     def translate(self, node):
-        # debug("Translating node:", node)
+        # debug(node)
         match node:
             case [*_]:
                 return [self.translate(n) for n in node]
@@ -197,31 +202,68 @@ class Translator:
                     return py.Dict(keys, values, **pos(node))
 
             #
-            # Unary & binary ops
+            # Unary ops
             #
-            case Expr_UnaryPlus(expr):
-                return py.UnaryOp(py.UAdd(), self.translate(expr))
+            case Expr_UnaryOp(expr):
+                op = unary_ops[node.op]()
+                return py.UnaryOp(op, self.translate(expr))
 
-            case Expr_UnaryMinus(expr):
-                return py.UnaryOp(py.USub(), self.translate(expr))
+            #
+            # Binary ops
+            #
+            case Expr_BinaryOp(left, right):
+                op = binary_ops[node.op]()
+                return py.BinOp(self.translate(left), op, self.translate(right))
 
-            case Expr_BinaryOp_Plus(left=left, right=right):
-                return py.BinOp(self.translate(left), py.Add(), self.translate(right))
+            # case Expr_BinaryOp_Plus(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Add(), self.translate(right))
+            #
+            # case Expr_BinaryOp_Minus(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Sub(), self.translate(right))
+            #
+            # case Expr_BinaryOp_Mul(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Mult(), self.translate(right))
+            #
+            # case Expr_BinaryOp_Div(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Div(), self.translate(right))
+            #
+            # case Expr_BinaryOp_Concat(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Add(), self.translate(right))
+            #
+            # # Boolean ops
+            # case Expr_BinaryOp_Identical(left=left, right=right):
+            #     return py.BinOp(self.translate(left), py.Is(), self.translate(right))
+            #
+            #
 
-            case Expr_BinaryOp_Minus(left=left, right=right):
-                return py.BinOp(self.translate(left), py.Sub(), self.translate(right))
+            # other ops
+            case Expr_Ternary(cond=cond, if_=if_, else_=else_):
+                return py.IfExp(
+                    self.translate(cond),
+                    self.translate(if_),
+                    self.translate(else_),
+                    **pos(node),
+                )
 
-            case Expr_BinaryOp_Mul(left=left, right=right):
-                return py.BinOp(self.translate(left), py.Mult(), self.translate(right))
+            # Casts
+            case Expr_Cast(expr):
+                # TODO: proper cast
 
-            case Expr_BinaryOp_Div(left=left, right=right):
-                return py.BinOp(self.translate(left), py.Div(), self.translate(right))
+                cast_name = {
+                    Expr_Cast_Object: "TODO",
+                    Expr_Cast_Array: "TODO",
+                    Expr_Cast_Bool: "bool",
+                    Expr_Cast_Double: "float",
+                    Expr_Cast_Int: "int",
+                    Expr_Cast_String: "str",
+                }.get(node.__class__)
 
-            case Expr_BooleanNot(expr):
-                return py.UnaryOp(py.Not(), self.translate(expr))
-
-            case Expr_BitwiseNot(expr):
-                return py.UnaryOp(py.Invert(), self.translate(expr))
+                return py.Call(
+                    func=py.Name(cast_name, py.Load()),
+                    args=[self.translate(expr)],
+                    keywords=[],
+                    **pos(node),
+                )
 
             #
             # Assign ops
@@ -328,45 +370,48 @@ class Translator:
                 return py.Attribute(self.translate(var), name, py.Load())
 
             case Expr_Isset(vars):
-                # if isinstance(node, php.IsSet) and len(node.nodes) == 1:
-                if isinstance(node.nodes[0], php.ArrayOffset):
-                    return py.Compare(
-                        self.translate(node.nodes[0].expr),
-                        [py.In(**pos(node))],
-                        [self.translate(node.nodes[0].node)],
-                        **pos(node),
-                    )
-                if isinstance(node.nodes[0], php.ObjectProperty):
-                    return py.Call(
-                        py.Name("hasattr", py.Load(**pos(node)), **pos(node)),
-                        [
-                            self.translate(node.nodes[0].node),
-                            self.translate(node.nodes[0].name),
-                        ],
-                        [],
-                        None,
-                        None,
-                        **pos(node),
-                    )
-                if isinstance(node.nodes[0], php.Variable):
-                    return py.Compare(
-                        py.Str(node.nodes[0].name[1:], **pos(node)),
-                        [py.In(**pos(node))],
-                        [
-                            py.Call(
-                                py.Name("vars", py.Load(**pos(node)), **pos(node)),
-                                [],
-                                [],
-                                None,
-                                None,
-                                **pos(node),
-                            )
-                        ],
-                        **pos(node),
-                    )
-                return py.Compare(
-                    self.translate(vars[0]), [py.IsNot()], [py.Name("None", py.Load())]
-                )
+                assert len(vars) == 1
+                var = vars[0]
+                match var:
+                    # case Expr_ArrayOffset():
+                    #     return py.Compare(
+                    #         self.translate(node.nodes[0].expr),
+                    #         [py.In(**pos(node))],
+                    #         [self.translate(node.nodes[0].node)],
+                    #         **pos(node),
+                    #     )
+                    #
+                    # case Expr_ObjectProperty():
+                    #     return py.Call(
+                    #         func=py.Name("hasattr", py.Load()),
+                    #         args=[
+                    #             self.translate(node.nodes[0].node),
+                    #             self.translate(node.nodes[0].name),
+                    #         ],
+                    #         keywords=[],
+                    #         **pos(node),
+                    #     )
+
+                    case Expr_Variable():
+                        return py.Compare(
+                            py.Str(var.name),
+                            [py.In()],
+                            [
+                                py.Call(
+                                    func=py.Name("vars", py.Load()),
+                                    args=[],
+                                    keywords=[],
+                                )
+                            ],
+                            **pos(node),
+                        )
+
+                    case _:
+                        return py.Compare(
+                            self.translate(var),
+                            [py.IsNot()],
+                            [py.Name("None", py.Load())],
+                        )
 
             case Expr_FuncCall(name=name, args=args):
                 name = name._json["parts"][0]
@@ -399,7 +444,36 @@ class Translator:
                 return py.Call(func=func, args=args, keywords=[], **pos(node))
 
             case Expr_StaticCall():
+                # TODO
                 return
+
+            case Expr_ArrayDimFetch(var=var, dim=dim):
+                debug(var, dim)
+                debug(node._json)
+                if dim:
+                    return py.Subscript(
+                        value=self.translate(var),
+                        slice=py.Index(self.translate(dim)),
+                        ctx=py.Load(),
+                        **pos(node),
+                    )
+                else:
+                    # TODO
+                    return py.Str("TODO: ")
+                    # return py.Subscript(
+                    #     value=self.translate(var),
+                    #     slice=py.Index(self.translate(dim)),
+                    #     ctx=py.Load(),
+                    #     **pos(node),
+                    # )
+
+            case Expr_ClassConstFetch(name=name, class_=class_):
+                return py.Attribute(
+                    value=py.Name(id=class_, ctx=py.Load()),
+                    attr=name,
+                    ctx=py.Load(),
+                    **pos(node),
+                )
 
             case _:
                 debug(node)
@@ -410,23 +484,36 @@ class Translator:
     def translate_stmt(self, node):
         match node:
             case Stmt_Nop():
-                return py.Pass()
+                return py.Pass(**pos(node))
 
-            case Stmt_Echo():
+            case Stmt_Echo(exprs):
                 return py.Call(
                     py.Name("echo", py.Load()),
-                    [self.translate(n) for n in node.exprs],
+                    [self.translate(n) for n in exprs],
                     [],
+                    **pos(node),
                 )
 
             case Stmt_Expression(expr):
-                return py.Expr(value=self.translate(expr))
+                return py.Expr(value=self.translate(expr), **pos(node))
 
             case Stmt_Namespace(stmts=stmts):
                 return self.translate(stmts)
 
             case Stmt_Use(uses=uses):
                 return self.translate(uses)
+
+            case Stmt_InlineHTML(value):
+                args = [py.Str(value)]
+                return py.Call(
+                    func=py.Name("inline_html", py.Load()),
+                    args=args,
+                    keywords=[],
+                    **pos(node),
+                )
+
+            case Stmt_Unset(vars):
+                return py.Delete([self.translate(n) for n in vars], **pos(node))
 
             #
             # Control flow
@@ -442,17 +529,16 @@ class Translator:
                 for elseif in reversed(node.elseifs):
                     orelse = [
                         py.If(
-                            self.translate(elseif.expr),
-                            [to_stmt(self.translate(stmt)) for stmt in stmts],
-                            orelse,
-                            **pos(node),
+                            test=self.translate(elseif.expr),
+                            body=[to_stmt(self.translate(stmt)) for stmt in stmts],
+                            orelse=orelse,
                         )
                     ]
 
                 return py.If(
-                    self.translate(cond),
-                    [to_stmt(self.translate(stmt)) for stmt in stmts],
-                    orelse,
+                    test=self.translate(cond),
+                    body=[to_stmt(self.translate(stmt)) for stmt in stmts],
+                    orelse=orelse,
                     **pos(node),
                 )
 
@@ -479,7 +565,6 @@ class Translator:
                 )
 
             case Stmt_Foreach(expr=expr, valueVar=value_var, stmts=stmts):
-                debug(value_var)
                 if node.keyVar is None:
                     target = py.Name(value_var.name, py.Store(**pos(node)), **pos(node))
                 else:
@@ -610,10 +695,8 @@ class Translator:
                 defaults = []
                 decorator_list = []
 
-                decorator_list.append(
-                    py.Name("classmethod", py.Load(**pos(node)), **pos(node))
-                )
-                args.append(py.Name("cls", py.Param(**pos(node)), **pos(node)))
+                decorator_list.append(py.Name("classmethod", py.Load()))
+                args.append(py.Name("cls", py.Param()))
 
                 # if "static" in node.modifiers:
                 #     decorator_list.append(
@@ -630,7 +713,7 @@ class Translator:
 
                 body = [to_stmt(self.translate(stmt)) for stmt in stmts]
                 if not body:
-                    body = [py.Pass(**pos(node))]
+                    body = [py.Pass()]
 
                 return py.FunctionDef(
                     node.name,
@@ -750,20 +833,21 @@ class Translator:
                     [store(self.translate(name))], self.translate(initial), **pos(node)
                 )
 
-            case Stmt_Property():
+            case Stmt_Property(props=props):
+                debug(node)
+                debug(props)
                 if isinstance(node.name, (php.Variable, php.BinaryOp)):
                     return py.Call(
-                        py.Name("getattr", py.Load(**pos(node)), **pos(node)),
-                        [from_phpast(node.node), from_phpast(node.name)],
-                        [],
-                        None,
-                        None,
+                        func=py.Name("getattr", py.Load(**pos(node)), **pos(node)),
+                        args=[self.translate(node.node), self.translate(node.name)],
+                        keywords=[],
                         **pos(node),
                     )
+
                 return py.Attribute(
                     self.translate(node.node),
                     node.name,
-                    py.Load(**pos(node)),
+                    py.Load(),
                     **pos(node),
                 )
 

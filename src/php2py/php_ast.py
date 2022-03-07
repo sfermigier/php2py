@@ -168,205 +168,211 @@ class Expr_AssignRef(Expr):
 
 
 @frozen
-class Expr_BinaryOp_BitwiseAnd(Expr):
-    left: Expr
-    right: Expr | Scalar_LNumber
-
-
-@frozen
-class Expr_BinaryOp_BitwiseOr(Expr):
-    left: Expr
-    right: Expr | Scalar_LNumber
-
-
-@frozen
-class Expr_BinaryOp_BitwiseXor(Expr):
+class Expr_BinaryOp(Expr):
     left: Expr
     right: Expr
 
 
 @frozen
-class Expr_BinaryOp_BooleanAnd(Expr):
-    left: Expr | Scalar_String
-    right: Expr
+class Expr_BinaryOp_BitwiseAnd(Expr_BinaryOp):
+    op = "&"
 
 
 @frozen
-class Expr_BinaryOp_BooleanOr(Expr):
-    left: Expr
-    right: Expr
+class Expr_BinaryOp_BitwiseOr(Expr_BinaryOp):
+    op = "|"
 
 
 @frozen
-class Expr_BinaryOp_Coalesce(Expr):
-    left: Expr | Scalar_String
-    right: Expr | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_BitwiseXor(Expr_BinaryOp):
+    op = "^"
 
 
 @frozen
-class Expr_BinaryOp_Concat(Expr):
-    left: Expr | Scalar_Encapsed | Scalar_MagicConst_Dir | Scalar_MagicConst_Function | Scalar_MagicConst_Method | Scalar_MagicConst_Namespace | Scalar_String
-    right: Expr | Scalar_Encapsed | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_Function | Scalar_MagicConst_Line | Scalar_String
+class Expr_BinaryOp_BooleanAnd(Expr_BinaryOp):
+    op = "&&"
 
 
 @frozen
-class Expr_BinaryOp_Div(Expr):
-    left: Expr | Scalar_LNumber
-    right: Expr | Scalar_DNumber | Scalar_LNumber
+class Expr_BinaryOp_BooleanOr(Expr_BinaryOp):
+    op = "||"
 
 
 @frozen
-class Expr_BinaryOp_Equal(Expr):
-    left: Expr | Scalar_Encapsed | Scalar_LNumber | Scalar_String
-    right: Expr | Scalar_Encapsed | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Coalesce(Expr_BinaryOp):
+    pass
 
 
 @frozen
-class Expr_BinaryOp_Greater(Expr):
-    left: Expr
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Concat(Expr_BinaryOp):
+    op = "."
+    pass
 
 
 @frozen
-class Expr_BinaryOp_GreaterOrEqual(Expr):
-    left: Expr
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Div(Expr_BinaryOp):
+    op = "/"
 
 
 @frozen
-class Expr_BinaryOp_Identical(Expr):
-    left: Expr | Scalar_LNumber | Scalar_String
-    right: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Equal(Expr_BinaryOp):
+    op = "=="
 
 
 @frozen
-class Expr_BinaryOp_LogicalAnd(Expr):
-    left: Expr
-    right: Expr
+class Expr_BinaryOp_Greater(Expr_BinaryOp):
+    op = ">"
 
 
 @frozen
-class Expr_BinaryOp_LogicalOr(Expr):
-    left: Expr
-    right: Expr
+class Expr_BinaryOp_GreaterOrEqual(Expr_BinaryOp):
+    op = ">="
 
 
 @frozen
-class Expr_BinaryOp_LogicalXor(Expr):
-    left: Expr
-    right: Expr
+class Expr_BinaryOp_Identical(Expr_BinaryOp):
+    op = "==="
 
 
 @frozen
-class Expr_BinaryOp_Minus(Expr):
-    left: Expr | Scalar_LNumber
-    right: Expr | Scalar_LNumber
+class Expr_BinaryOp_LogicalAnd(Expr_BinaryOp):
+    op = "???"
 
 
 @frozen
-class Expr_BinaryOp_Mod(Expr):
-    left: Expr
-    right: Expr | Scalar_LNumber
+class Expr_BinaryOp_LogicalOr(Expr_BinaryOp):
+    op = "???"
 
 
 @frozen
-class Expr_BinaryOp_Mul(Expr):
-    left: Expr | Scalar_DNumber | Scalar_LNumber
-    right: Expr | Scalar_DNumber | Scalar_LNumber
+class Expr_BinaryOp_LogicalXor(Expr_BinaryOp):
+    op = "???"
 
 
 @frozen
-class Expr_BinaryOp_NotEqual(Expr):
-    left: Expr | Scalar_LNumber | Scalar_String
-    right: Expr | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Minus(Expr_BinaryOp):
+    op = "-"
 
 
 @frozen
-class Expr_BinaryOp_NotIdentical(Expr):
-    left: Expr | Scalar_LNumber | Scalar_String
-    right: Expr | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Mod(Expr_BinaryOp):
+    op = "%"
 
 
 @frozen
-class Expr_BinaryOp_Plus(Expr):
-    left: Expr | Scalar_DNumber | Scalar_LNumber
-    right: Expr | Scalar_DNumber | Scalar_LNumber
+class Expr_BinaryOp_Mul(Expr_BinaryOp):
+    op = "*"
 
 
 @frozen
-class Expr_BinaryOp_Pow(Expr):
-    left: Expr
-    right: Expr
+class Expr_BinaryOp_NotEqual(Expr_BinaryOp):
+    op = "!="
 
 
 @frozen
-class Expr_BinaryOp_ShiftLeft(Expr):
-    left: Expr | Scalar_LNumber
-    right: Expr | Scalar_LNumber
+class Expr_BinaryOp_NotIdentical(Expr_BinaryOp):
+    op = "!=="
 
 
 @frozen
-class Expr_BinaryOp_ShiftRight(Expr):
-    left: Expr
-    right: Expr | Scalar_LNumber
+class Expr_BinaryOp_Plus(Expr_BinaryOp):
+    op = "+"
 
 
 @frozen
-class Expr_BinaryOp_Smaller(Expr):
-    left: Expr | Scalar_LNumber
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_Pow(Expr_BinaryOp):
+    op = "**"
 
 
 @frozen
-class Expr_BinaryOp_SmallerOrEqual(Expr):
-    left: Expr | Scalar_LNumber
-    right: Expr | Scalar_DNumber | Scalar_LNumber
+class Expr_BinaryOp_ShiftLeft(Expr_BinaryOp):
+    op = "<<"
 
 
 @frozen
-class Expr_BinaryOp_Spaceship(Expr):
-    left: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+class Expr_BinaryOp_ShiftRight(Expr_BinaryOp):
+    op = ">>"
 
 
 @frozen
-class Expr_BitwiseNot(Expr):
-    expr: Expr | Scalar_LNumber
+class Expr_BinaryOp_Smaller(Expr_BinaryOp):
+    op = "<"
 
 
 @frozen
-class Expr_BooleanNot(Expr):
+class Expr_BinaryOp_SmallerOrEqual(Expr_BinaryOp):
+    op = "<="
+
+
+@frozen
+class Expr_BinaryOp_Spaceship(Expr_BinaryOp):
+    op = "???"
+
+
+#
+# Unary ops
+#
+@frozen
+class Expr_UnaryOp(Expr):
     expr: Expr
 
 
 @frozen
-class Expr_Cast_Array(Expr):
+class Expr_UnaryMinus(Expr_UnaryOp):
+    op = "-"
+
+
+@frozen
+class Expr_UnaryPlus(Expr_UnaryOp):
+    op = "+"
+
+
+@frozen
+class Expr_BitwiseNot(Expr_UnaryOp):
+    op = "~"
+
+
+@frozen
+class Expr_BooleanNot(Expr_UnaryOp):
+    op = "!"
+
+
+#
+# Casts
+#
+@frozen
+class Expr_Cast(Expr):
     expr: Expr
 
 
 @frozen
-class Expr_Cast_Bool(Expr):
-    expr: Expr
+class Expr_Cast_Array(Expr_Cast):
+    cast = "TODO"
 
 
 @frozen
-class Expr_Cast_Double(Expr):
-    expr: Expr
+class Expr_Cast_Bool(Expr_Cast):
+    cast = "bool"
 
 
 @frozen
-class Expr_Cast_Int(Expr):
-    expr: Expr
+class Expr_Cast_Double(Expr_Cast):
+    cast = "float"
 
 
 @frozen
-class Expr_Cast_Object(Expr):
-    expr: Expr
+class Expr_Cast_Int(Expr_Cast):
+    cast = "int"
 
 
 @frozen
-class Expr_Cast_String(Expr):
-    expr: Expr
+class Expr_Cast_Object(Expr_Cast):
+    cast = "TODO"
+
+
+@frozen
+class Expr_Cast_String(Expr_Cast):
+    cast = "str"
 
 
 @frozen
@@ -544,16 +550,6 @@ class Expr_Throw(Expr):
 
 
 @frozen
-class Expr_UnaryMinus(Expr):
-    expr: Expr | Scalar_DNumber | Scalar_LNumber
-
-
-@frozen
-class Expr_UnaryPlus(Expr):
-    expr: Expr | Scalar_LNumber
-
-
-@frozen
 class Expr_Variable(Expr):
     name: Expr | str
 
@@ -582,12 +578,17 @@ class MatchArm(Node):
 
 @frozen
 class Name(Node):
-    parts: list[Any]
+    parts: list[str]
 
 
 @frozen
 class Name_FullyQualified(Node):
-    parts: list[Any]
+    parts: list[str]
+
+
+@frozen
+class Name_Relative(Node):
+    parts: list[str]
 
 
 @frozen
@@ -869,10 +870,10 @@ class Stmt_Nop(Stmt):
 
 @frozen
 class Stmt_Property(Stmt):
+    props: list[Stmt]
     flags: int
     attrGroups: list[Stmt]
     type: Identifier | Name | Name_FullyQualified | None | NullableType | UnionType
-    props: list[Stmt]
 
 
 @frozen

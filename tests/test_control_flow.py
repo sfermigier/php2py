@@ -23,12 +23,12 @@ def test_while_with_break_and_continue():
         }
     ?>"""
     expected = (
-        'while True:\n'
-        '    echo(bar)\n'
-        '    break\n'
-        'while True:\n'
-        '    echo(bar)\n'
-        '    continue'
+        "while True:\n"
+        "    echo(bar)\n"
+        "    break\n"
+        "while True:\n"
+        "    echo(bar)\n"
+        "    continue"
     )
     check_compiles(input, expected)
 
