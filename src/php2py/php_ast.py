@@ -803,13 +803,13 @@ class Stmt_Foreach(Stmt):
 
 @frozen
 class Stmt_Function(Stmt):
+    name: Identifier
+    params: list[Node] | list[Stmt]
+    stmts: list[Stmt]
     attrGroups: list[Stmt]
     byRef: int
     returnType: Identifier | Name | None | NullableType
     namespacedName: None
-    stmts: list[Stmt]
-    params: list[Node] | list[Stmt]
-    name: Identifier
 
 
 @frozen

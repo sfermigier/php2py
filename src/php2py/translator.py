@@ -24,6 +24,8 @@ from php2py.php_ast import (
     Expr_Exit,
     Expr_FuncCall,
     Expr_Isset,
+    Expr_MethodCall,
+    Expr_New,
     Expr_PropertyFetch,
     Expr_StaticCall,
     Expr_UnaryMinus,
@@ -42,6 +44,7 @@ from php2py.php_ast import (
     Stmt_Expression,
     Stmt_For,
     Stmt_Foreach,
+    Stmt_Function,
     Stmt_If,
     Stmt_Namespace,
     Stmt_Nop,
@@ -299,9 +302,6 @@ class Translator:
                     **pos(node),
                 )
 
-            case Expr_StaticCall():
-                return
-
             case Expr_Exit(expr):
                 args = []
                 if expr is not None:
@@ -365,6 +365,69 @@ class Translator:
                     self.translate(vars[0]), [py.IsNot()], [py.Name("None", py.Load())]
                 )
 
+            case Expr_FuncCall(name=name, args=args):
+                name = name._json["parts"][0]
+                func = py.Name(name, py.Load())
+                # TODO
+                # if isinstance(node, (php.FunctionCall, php.New)):
+
+                # if isinstance(name, str):
+                #     name = py.Name(name, py.Load())
+                # else:
+                #     name = py.Subscript(
+                #         py.Call(
+                #             func=py.Name("vars", py.Load()),
+                #             args=[],
+                #             keywords=[],
+                #             **pos(node),
+                #         ),
+                #         py.Index(self.translate(node.name)),
+                #         py.Load(),
+                #     )
+                # args, kwargs = build_args(node.params)
+                return py.Call(func=func, args=args, keywords=[], **pos(node))
+
+            case Expr_New(class_=class_, args=args):
+                name = class_._json["parts"][0]
+                func = py.Name(name, py.Load())
+                # TODO
+                # if isinstance(node, (php.FunctionCall, php.New)):
+
+                # if isinstance(name, str):
+                #     name = py.Name(name, py.Load())
+                # else:
+                #     name = py.Subscript(
+                #         py.Call(
+                #             func=py.Name("vars", py.Load()),
+                #             args=[],
+                #             keywords=[],
+                #             **pos(node),
+                #         ),
+                #         py.Index(self.translate(node.name)),
+                #         py.Load(),
+                #     )
+                # args, kwargs = build_args(node.params)
+                return py.Call(func=func, args=args, keywords=[], **pos(node))
+
+            case Expr_MethodCall():
+                args, kwargs = build_args(node.params)
+                return py.Call(
+                    py.Attribute(
+                        self.translate(node.node),
+                        node.name,
+                        py.Load(**pos(node)),
+                        **pos(node),
+                    ),
+                    args,
+                    kwargs,
+                    None,
+                    None,
+                    **pos(node),
+                )
+
+            case Expr_StaticCall():
+                return
+
             case _:
                 debug(node)
                 raise NotImplementedError(
@@ -386,11 +449,11 @@ class Translator:
             case Stmt_Expression(expr):
                 return py.Expr(value=self.translate(expr))
 
-            case Stmt_Namespace():
-                return self.translate(node.stmts)
+            case Stmt_Namespace(stmts=stmts):
+                return self.translate(stmts)
 
-            case Stmt_Use():
-                return self.translate(node.uses)
+            case Stmt_Use(uses=uses):
+                return self.translate(uses)
 
             #
             # Control flow
@@ -408,13 +471,6 @@ class Translator:
                         py.If(
                             self.translate(elseif.expr),
                             [to_stmt(self.translate(stmt)) for stmt in stmts],
-                            # []
-                            # list(
-                            #     map(
-                            #         to_stmt,
-                            #         list(map(from_phpast, deblock(elseif.node))),
-                            #     )
-                            # ),
                             orelse,
                             **pos(node),
                         )
@@ -496,8 +552,52 @@ class Translator:
             #     )
 
             #
-            # Functions
+            # Functions / methods
             #
+            case Stmt_Function(name=name, params=params, stmts=stmts):
+                args = []
+                defaults = []
+                for param in params:
+                    args.append(
+                        py.Name(param.name[1:], py.Param(**pos(node)), **pos(node))
+                    )
+                    if param.default is not None:
+                        defaults.append(self.translate(param.default))
+
+                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
+                if not body:
+                    body = [py.Pass(**pos(node))]
+
+                arguments = py.arguments(
+                    posonlyargs=[],
+                    args=args,
+                    vararg=None,
+                    kwonlyargs=[],
+                    kw_defaults=[],
+                    kwarg=None,
+                    defaults=defaults,
+                )
+                return py.FunctionDef(name.name, arguments, body, [], **pos(node))
+
+            # case Stmt_StaticMethodCall():
+            #     class_ = node.class_
+            #     if class_ == "self":
+            #         class_ = "cls"
+            #     args, kwargs = build_args(node.params)
+            #     return py.Call(
+            #         py.Attribute(
+            #             py.Name(class_, py.Load(**pos(node)), **pos(node)),
+            #             node.name,
+            #             py.Load(**pos(node)),
+            #             **pos(node),
+            #         ),
+            #         args,
+            #         kwargs,
+            #         None,
+            #         None,
+            #         **pos(node),
+            #     )
+
             case Stmt_Return(expr):
                 if expr is None:
                     return py.Return(None)
@@ -507,14 +607,13 @@ class Translator:
             #
             # Class definitions
             #
-            case Stmt_Class():
-                name = node.name.name
+            case Stmt_Class(name=name, stmts=stmts):
+                name = name.name
                 bases = []
                 # extends = node.extends or "object"
                 # bases.append(py.Name(extends, py.Load(**pos(node)), **pos(node)))
 
-                body = list(map(to_stmt, list(map(self.translate, node.stmts))))
-
+                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
                 for stmt in body:
                     if isinstance(stmt, py.FunctionDef) and stmt.name in (
                         name,
@@ -523,9 +622,10 @@ class Translator:
                         stmt.name = "__init__"
                 if not body:
                     body = [py.Pass(**pos(node))]
+
                 return py.ClassDef(name, bases, body, [], **pos(node))
 
-            case Stmt_ClassMethod():
+            case Stmt_ClassMethod(stmts=stmts):
                 args = []
                 defaults = []
                 decorator_list = []
@@ -548,7 +648,7 @@ class Translator:
                 #     if param.default is not None:
                 #         defaults.append(self.translate(param.default))
 
-                body = list(map(to_stmt, list(map(self.translate, node.stmts))))
+                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
                 if not body:
                     body = [py.Pass(**pos(node))]
 
@@ -559,6 +659,32 @@ class Translator:
                     decorator_list,
                     **pos(node),
                 )
+
+            # case Stmt_Method():
+            #     args = []
+            #     defaults = []
+            #     decorator_list = []
+            #     if "static" in node.modifiers:
+            #         decorator_list.append(
+            #             py.Name("classmethod", py.Load(**pos(node)), **pos(node))
+            #         )
+            #         args.append(py.Name("cls", py.Param(**pos(node)), **pos(node)))
+            #     else:
+            #         args.append(py.Name("self", py.Param(**pos(node)), **pos(node)))
+            #     for param in node.params:
+            #         args.append(py.Name(param.name[1:], py.Param(**pos(node)), **pos(node)))
+            #         if param.default is not None:
+            #             defaults.append(from_phpast(param.default))
+            #     body = list(map(to_stmt, list(map(from_phpast, node.nodes))))
+            #     if not body:
+            #         body = [py.Pass(**pos(node))]
+            #     return py.FunctionDef(
+            #         node.name,
+            #         py.arguments(args, None, None, defaults),
+            #         body,
+            #         decorator_list,
+            #         **pos(node),
+            #     )
 
             # if isinstance(node, php.Assignment):
             #     if isinstance(node.node, php.ArrayOffset) and node.node.expr is None:
