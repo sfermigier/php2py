@@ -128,12 +128,18 @@ def test_string_unescape():
 def test_object_properties():
     input = r"""<?php
         $object->property;
-        # $object->foreach;
-        # $object->$variable;
-        # $object->$variable->schmariable;
-        # $object->$variable->$schmariable;
+        $object->foreach;
+        $object->$variable;
+        $object->$variable->schmariable;
+        $object->$variable->$schmariable;
     ?>"""
-    expected = ""
+    expected = (
+        "object.property\n"
+        "object.foreach\n"
+        "object.variable\n"
+        "object.variable.schmariable\n"
+        "object.variable.schmariable"
+    )
     check_compiles(input, expected)
 
 

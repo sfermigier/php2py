@@ -29,7 +29,7 @@ def test_new_with_args():
     input = r"""<?php
         new Rocket(1);
     """
-    expected = "Rocket()"
+    expected = "Rocket(1)"
     check_compiles(input, expected)
 
 
@@ -44,6 +44,7 @@ def test_method_call():
 def test_method_call_with_args():
     input = r"""<?php
         $r->fire(1, 'a');
+        $r->fire($arg1=1, $arg2='a');
     """
-    expected = "r.fire(1, 'a')"
+    expected = "r.fire(1, 'a')\n" "r.fire(\n" "arg1 = 1, \n" "arg2 = 'a')"
     check_compiles(input, expected)

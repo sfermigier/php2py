@@ -42,10 +42,10 @@ class Scalar(Node):
 
 @frozen
 class Arg(Node):
+    name: Identifier | None
+    value: Expr
     byRef: int
     unpack: int
-    name: Identifier | None
-    value: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_File | Scalar_MagicConst_Function | Scalar_MagicConst_Line | Scalar_MagicConst_Method | Scalar_String
 
 
 @frozen

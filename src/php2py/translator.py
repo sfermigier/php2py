@@ -6,6 +6,7 @@ import rich
 from devtools import debug
 
 from php2py.php_ast import (
+    Arg,
     Const,
     Expr_Array,
     Expr_ArrayDimFetch,
@@ -139,6 +140,9 @@ class Translator:
 
     def translate_other(self, node):
         match node:
+            case Arg(name=name, value=value):
+                debug(node)
+
             case Name():
                 debug(node)
 
@@ -215,26 +219,46 @@ class Translator:
                 op = binary_ops[node.op]()
                 return py.BinOp(self.translate(left), op, self.translate(right))
 
-            # case Expr_BinaryOp_Plus(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Add(), self.translate(right))
-            #
-            # case Expr_BinaryOp_Minus(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Sub(), self.translate(right))
-            #
-            # case Expr_BinaryOp_Mul(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Mult(), self.translate(right))
-            #
-            # case Expr_BinaryOp_Div(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Div(), self.translate(right))
-            #
-            # case Expr_BinaryOp_Concat(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Add(), self.translate(right))
-            #
-            # # Boolean ops
-            # case Expr_BinaryOp_Identical(left=left, right=right):
-            #     return py.BinOp(self.translate(left), py.Is(), self.translate(right))
-            #
-            #
+            # TODO: check this:
+            #         if node.op == ".":
+            #             pattern, pieces = build_format(node.left, node.right)
+            #             if pieces:
+            #                 return py.BinOp(
+            #                     py.Str(pattern, **pos(node)),
+            #                     py.Mod(**pos(node)),
+            #                     py.Tuple(
+            #                         list(map(from_phpast, pieces)),
+            #                         py.Load(**pos(node)),
+            #                         **pos(node),
+            #                     ),
+            #                     **pos(node),
+            #                 )
+            #             else:
+            #                 return py.Str(pattern % (), **pos(node))
+            #         if node.op in bool_ops:
+            #             op = bool_ops[node.op](**pos(node))
+            #             return py.BoolOp(
+            #                 op, [from_phpast(node.left), from_phpast(node.right)], **pos(node)
+            #             )
+            #         if node.op in cmp_ops:
+            #             op = cmp_ops[node.op](**pos(node))
+            #             return py.Compare(
+            #                 from_phpast(node.left), [op], [from_phpast(node.right)], **pos(node)
+            #             )
+            #         op = binary_ops.get(node.op)
+            #         if node.op == "instanceof":
+            #             return py.Call(
+            #                 func=py.Name(id="isinstance", ctx=py.Load(**pos(node))),
+            #                 args=[from_phpast(node.left), from_phpast(node.right)],
+            #                 keywords=[],
+            #                 starargs=None,
+            #                 kwargs=None,
+            #             )
+            #         assert op is not None, f"unknown binary operator: '{node.op}'"
+            #         op = op(**pos(node))
+            #         return py.BinOp(
+            #             from_phpast(node.left), op, from_phpast(node.right), **pos(node)
+            #         )
 
             # other ops
             case Expr_Ternary(cond=cond, if_=if_, else_=else_):
@@ -351,23 +375,28 @@ class Translator:
                 args = []
                 if expr is not None:
                     args.append(self.translate(expr))
+
                 return py.Raise(
                     py.Call(
-                        py.Name("SystemExit", py.Load()),
-                        args,
-                        [],
+                        func=py.Name("SystemExit", py.Load()),
+                        args=args,
+                        keywords=[],
                     ),
                     None,
+                    **pos(node),
                 )
 
             case Expr_PropertyFetch(var=var, name=name):
+                name = name.name
                 # if isinstance(node.name, (Variable, BinaryOp)):
                 #     return py.Call(
                 #         py.Name("getattr", py.Load()),
                 #         [self.translate(node.node), self.translate(node.name)],
                 #         [],
                 #     )
-                return py.Attribute(self.translate(var), name, py.Load())
+                return py.Attribute(
+                    value=self.translate(var), attr=name, ctx=py.Load(), **pos(node)
+                )
 
             case Expr_Isset(vars):
                 assert len(vars) == 1
@@ -430,18 +459,20 @@ class Translator:
                 #         py.Index(self.translate(node.name)),
                 #         py.Load(),
                 #     )
-                # args, kwargs = build_args(node.params)
-                return py.Call(func=func, args=args, keywords=[], **pos(node))
+                args, kwargs = self.build_args(args)
+                return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_New(class_=class_, args=args):
+                args, kwargs = self.build_args(args)
                 name = class_._json["parts"][0]
                 func = py.Name(name, py.Load())
-                return py.Call(func=func, args=args, keywords=[], **pos(node))
+                return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_MethodCall(var=var, name=name, args=args):
                 name = name.name
+                args, kwargs = self.build_args(args)
                 func = py.Attribute(self.translate(var), name, py.Load())
-                return py.Call(func=func, args=args, keywords=[], **pos(node))
+                return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_StaticCall():
                 # TODO
@@ -879,6 +910,26 @@ class Translator:
                     f"Don't know how to translate node {node.__class__}"
                 )
 
+    def build_args(self, php_args: list[Node]):
+        debug(php_args)
+        args = []
+        kwargs = []
+        for arg in php_args:
+            match arg:
+                case Arg(name=None, value=value):
+                    args.append(self.translate(value))
+                case Arg(name=name, value=value):
+                    kwargs.append(py.keyword(name, self.translate(value)))
+
+                # debug(arg)
+            # node = self.translate(arg)
+            # if isinstance(node, py.Assign):
+            #     kwargs.append(py.keyword(node.targets[0].id, node.value))
+            # else:
+            #     args.append(node)
+
+        return args, kwargs
+
 
 #
 # Util
@@ -911,18 +962,6 @@ def deblock(node):
         return node.nodes
     else:
         return [node]
-
-
-def build_args(params):
-    args = []
-    kwargs = []
-    for param in params:
-        node = from_phpast(param.node)
-        if isinstance(node, py.Assign):
-            kwargs.append(py.keyword(node.targets[0].id, node.value))
-        else:
-            args.append(node)
-    return args, kwargs
 
 
 def build_format(left, right):
