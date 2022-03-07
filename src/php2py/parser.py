@@ -51,6 +51,14 @@ def make_ast(
         if attr in {"nodeType", "attributes"}:
             continue
 
+        remap_attrs = {
+            "if": "if_",
+            "else": "else_",
+            "class": "class_",
+            "finally": "finally_",
+        }
+        attr = remap_attrs.get(attr, attr)
+
         match value:
             case [*_]:
                 args[attr] = make_ast(value)

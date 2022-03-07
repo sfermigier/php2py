@@ -114,6 +114,12 @@ class Expr_AssignOp_BitwiseOr(Expr):
 
 
 @frozen
+class Expr_AssignOp_BitwiseXor(Expr):
+    var: Expr
+    expr: Expr
+
+
+@frozen
 class Expr_AssignOp_Coalesce(Expr):
     var: Expr
     expr: Expr
@@ -790,8 +796,8 @@ class Stmt_For(Stmt):
 class Stmt_Foreach(Stmt):
     expr: Expr
     valueVar: Expr
-    byRef: int
     stmts: list[Stmt]
+    byRef: int
     keyVar: Expr | None
 
 
@@ -825,9 +831,9 @@ class Stmt_GroupUse(Stmt):
 
 @frozen
 class Stmt_If(Stmt):
-    elseifs: list[Stmt]
     cond: Expr | Scalar_LNumber
     stmts: list[Stmt]
+    elseifs: list[Stmt]
     else_: None | Stmt_Else
 
 

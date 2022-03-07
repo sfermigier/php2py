@@ -1,60 +1,7 @@
-import ast
-import traceback
-from ast import dump, unparse
-
-import rich
-from devtools import debug
+from util import check_compiles
 
 from php2py.parser import parse
 from php2py.php_ast import Stmt_InlineHTML, Stmt_Nop
-from php2py.translator import Translator
-
-
-def translate(source):
-    php_ast = parse(source)
-    return Translator().translate_root(php_ast)
-
-
-def ast_eq(node1: ast.AST | list[ast.AST], node2: ast.AST | list[ast.AST]) -> bool:
-    if type(node1) is not type(node2):
-        debug(type(node1), type(node2))
-        return False
-
-    if isinstance(node1, ast.AST):
-        for k, v in vars(node1).items():
-            if k in ("lineno", "col_offset", "ctx"):
-                continue
-            v2 = getattr(node2, k)
-            if not ast_eq(v, v2):
-                debug(v, v2)
-                return False
-        return True
-
-    elif isinstance(node1, list) and isinstance(node2, list):
-        return all([ast_eq(n1, n2) for n1, n2 in zip(node1, node2)])
-
-    else:
-        return node1 == node2
-
-
-def check_compiles(input, expected):
-    php_ast = parse(input)
-    try:
-        py_ast = translate(input)
-    except:
-        rich.print("[red]Error while translating[/red]")
-        debug(php_ast)
-        traceback.print_exc()
-        raise
-
-    output = unparse(py_ast)
-
-    if expected != output:
-        debug(php_ast)
-        print("py_ast=", dump(py_ast, indent=2))
-        debug(output)
-
-    assert expected == output
 
 
 def test_inline_html():
@@ -129,6 +76,17 @@ def test_assign2():
     check_compiles(input, expected)
 
 
+def test_assignment_ops():
+    input = r"""<?php
+        $a += 5;
+        $b -= 6;
+        $c .= $d;
+        $e ^= $f;
+    ?>"""
+    expected = "\n" "xxx += 5\n" "\n" "xxx -= 6\n" "\n" "xxx += d\n" "\n" "xxx ^= f"
+    check_compiles(input, expected)
+
+
 def test_constants():
     input = r"""<?php
         $a = true;
@@ -169,7 +127,7 @@ def test_string_unescape():
     # check_compiles(input, expected)
 
 
-def xxtest_object_properties():
+def test_object_properties():
     input = r"""<?php
         $object->property;
         # $object->foreach;
@@ -177,5 +135,38 @@ def xxtest_object_properties():
         # $object->$variable->schmariable;
         # $object->$variable->$schmariable;
     ?>"""
+    expected = ""
+    check_compiles(input, expected)
+
+
+def test_array():
+    input = r"""<?php
+    $l = [1, 2, 3];
+    $l = ['a', 1.2, [null, true, false]];
+    $d = [1 => 2, 'a' => 'b'];
+    """
+    expected = (
+        "\n"
+        "l = [1, 2, 3]\n"
+        "\n"
+        "l = ['a', 1.2, [None, True, False]]\n"
+        "\n"
+        "d = {1: 2, 'a': 'b'}"
+    )
+    check_compiles(input, expected)
+
+
+def test_class():
+    input = r"""<?php
+    class Rocket {
+        # protected $fuel;
+    
+        # const LAUNCH_PADS = ['p1', 'p2'];
+        
+        public function get(int $id) {
+		    return "TODO";
+	    }
+    }    
+    """
     expected = ""
     check_compiles(input, expected)
