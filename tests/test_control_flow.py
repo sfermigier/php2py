@@ -11,6 +11,28 @@ def test_while():
     check_compiles(input, expected)
 
 
+def test_while_with_break_and_continue():
+    input = r"""<?php
+        while (true) {
+            echo $bar;
+            break;
+        }
+        while (true) {
+            echo $bar;
+            continue;
+        }
+    ?>"""
+    expected = (
+        'while True:\n'
+        '    echo(bar)\n'
+        '    break\n'
+        'while True:\n'
+        '    echo(bar)\n'
+        '    continue'
+    )
+    check_compiles(input, expected)
+
+
 def test_if():
     input = r"""<?php
         if (true) {
