@@ -5,6 +5,8 @@ import tempfile
 
 from devtools import debug
 
+from php2py.php_ast import Expr_ConstFetch
+
 from . import php_ast
 
 
@@ -28,7 +30,7 @@ def make_ast(
     json_node: list | dict | str | int | None,
 ) -> php_ast.Node | list[php_ast.Node] | None:
     if isinstance(json_node, list):
-        result = []
+        node = []
         return [make_ast(subnode) for subnode in json_node]
 
     if isinstance(json_node, str):
@@ -57,5 +59,13 @@ def make_ast(
             case _:
                 args[attr] = value
 
-    result = node_class(**args)
-    return result
+    # if node_class == Expr_ConstFetch:
+    #     debug(json_node)
+
+    node = node_class(**args)
+
+    # Hacks
+    node._json = json_node
+    node._attributes = json_node["attributes"]
+
+    return node

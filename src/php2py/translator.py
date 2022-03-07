@@ -2,14 +2,28 @@
 
 import ast as py
 
+import rich
 from devtools import debug
 
 from php2py.php_ast import (
     Expr_Assign,
+    Expr_BinaryOp_Div,
+    Expr_BinaryOp_Minus,
+    Expr_BinaryOp_Mul,
+    Expr_BinaryOp_Plus,
+    Expr_BitwiseNot,
+    Expr_BooleanNot,
+    Expr_ConstFetch,
     Expr_Exit,
+    Expr_Isset,
     Expr_PropertyFetch,
     Expr_StaticCall,
+    Expr_UnaryMinus,
+    Expr_UnaryPlus,
+    Expr_Variable,
+    Name,
     Node,
+    Scalar_DNumber,
     Scalar_LNumber,
     Scalar_String,
     Stmt_Class,
@@ -17,6 +31,7 @@ from php2py.php_ast import (
     Stmt_Echo,
     Stmt_Expression,
     Stmt_Namespace,
+    Stmt_Nop,
     Stmt_Return,
     Stmt_Use,
 )
@@ -72,7 +87,7 @@ class Translator:
         return py.Module(body=[self.translate(n) for n in root_node], type_ignores=[])
 
     def translate(self, node):
-        debug("Translating node:", node)
+        # debug("Translating node:", node)
         match node:
             case [*_]:
                 return [self.translate(n) for n in node]
@@ -89,11 +104,20 @@ class Translator:
                 if node_type.startswith("Scalar_"):
                     return self.translate_scalar(node)
 
-                print(f"Ignoring node: {node_type}")
+                else:
+                    return self.translate_other(node)
 
             case _:
                 debug(node)
                 assert False
+
+    def translate_other(self, node):
+        match node:
+            case Name():
+                debug(node)
+
+            case _:
+                rich.print(f"[red]Ignoring node: {node}[/red]")
 
     def translate_scalar(self, node):
         match node:
@@ -101,10 +125,59 @@ class Translator:
                 return py.Str(value)
 
             case Scalar_LNumber(value):
-                return py.Str(value)
+                return py.Num(value)
+
+            case Scalar_DNumber(value):
+                return py.Num(value)
+
+            case _:
+                debug(node)
+                raise NotImplementedError()
 
     def translate_expr(self, node):
         match node:
+            case Expr_Variable(name):
+                if name == "this":
+                    name = "self"
+                return py.Name(name, py.Load())
+
+            case Expr_ConstFetch():
+                # FIXME: 'parts' should be directly addressable
+                parts = node.name._json["parts"]
+                name = parts[0]
+                if name.lower() == "true":
+                    name = "True"
+                if name.lower() == "false":
+                    name = "False"
+                if name.lower() == "null":
+                    name = "None"
+                return py.Name(name, py.Load())
+
+            case Expr_UnaryPlus(expr):
+                return py.UnaryOp(py.UAdd(), self.translate(expr))
+
+            case Expr_UnaryMinus(expr):
+                return py.UnaryOp(py.USub(), self.translate(expr))
+
+            case Expr_BinaryOp_Plus(left=left, right=right):
+                return py.BinOp(self.translate(left), py.Add(), self.translate(right))
+
+            case Expr_BinaryOp_Minus(left=left, right=right):
+                return py.BinOp(self.translate(left), py.Sub(), self.translate(right))
+
+            case Expr_BinaryOp_Mul(left=left, right=right):
+                return py.BinOp(self.translate(left), py.Mult(), self.translate(right))
+
+            case Expr_BinaryOp_Div(left=left, right=right):
+                return py.BinOp(self.translate(left), py.Div(), self.translate(right))
+
+            case Expr_BooleanNot(expr):
+                return py.UnaryOp(py.Not(), self.translate(expr))
+
+            case Expr_BitwiseNot(expr):
+                pass
+                return py.UnaryOp(py.Invert(), self.translate(expr))
+
             case Expr_Assign():
                 # if isinstance(node.node, php.ArrayOffset) and node.node.expr is None:
                 #     return py.Call(
@@ -137,10 +210,6 @@ class Translator:
                 #             **pos(node),
                 #         )
                 #     )
-                # debug(node)
-                # debug(node.var)
-                # debug(node.expr)
-                # assert False
                 return py.Assign(
                     [store(self.translate(node.var))],
                     self.translate(node.expr),
@@ -172,8 +241,56 @@ class Translator:
                 #     )
                 return py.Attribute(self.translate(var), name, py.Load())
 
+            case Expr_Isset(vars):
+                # if isinstance(node, php.IsSet) and len(node.nodes) == 1:
+                if isinstance(node.nodes[0], php.ArrayOffset):
+                    return py.Compare(
+                        from_phpast(node.nodes[0].expr),
+                        [py.In(**pos(node))],
+                        [from_phpast(node.nodes[0].node)],
+                        **pos(node),
+                    )
+                if isinstance(node.nodes[0], php.ObjectProperty):
+                    return py.Call(
+                        py.Name("hasattr", py.Load(**pos(node)), **pos(node)),
+                        [
+                            from_phpast(node.nodes[0].node),
+                            from_phpast(node.nodes[0].name),
+                        ],
+                        [],
+                        None,
+                        None,
+                        **pos(node),
+                    )
+                if isinstance(node.nodes[0], php.Variable):
+                    return py.Compare(
+                        py.Str(node.nodes[0].name[1:], **pos(node)),
+                        [py.In(**pos(node))],
+                        [
+                            py.Call(
+                                py.Name("vars", py.Load(**pos(node)), **pos(node)),
+                                [],
+                                [],
+                                None,
+                                None,
+                                **pos(node),
+                            )
+                        ],
+                        **pos(node),
+                    )
+                return py.Compare(
+                    self.translate(vars[0]), [py.IsNot()], [py.Name("None", py.Load())]
+                )
+
+            case _:
+                debug(node)
+                raise NotImplementedError()
+
     def translate_stmt(self, node):
         match node:
+            case Stmt_Nop():
+                return py.Pass()
+
             case Stmt_Echo():
                 return py.Call(
                     py.Name("echo", py.Load()),
@@ -181,8 +298,8 @@ class Translator:
                     [],
                 )
 
-            case Stmt_Expression():
-                return self.translate(node.expr)
+            case Stmt_Expression(expr):
+                return py.Expr(value=self.translate(expr))
 
             case Stmt_Namespace():
                 return self.translate(node.stmts)
@@ -252,41 +369,45 @@ class Translator:
                     **pos(node),
                 )
 
-        # if isinstance(node, php.Assignment):
-        #     if isinstance(node.node, php.ArrayOffset) and node.node.expr is None:
-        #         return py.Call(
-        #             py.Attribute(
-        #                 from_phpast(node.node.node),
-        #                 "append",
-        #                 py.Load(**pos(node)),
-        #                 **pos(node),
-        #             ),
-        #             [from_phpast(node.expr)],
-        #             [],
-        #             None,
-        #             None,
-        #             **pos(node),
-        #         )
-        #     if isinstance(node.node, php.ObjectProperty) and isinstance(
-        #         node.node.name, php.BinaryOp
-        #     ):
-        #         return to_stmt(
-        #             py.Call(
-        #                 py.Name("setattr", py.Load(**pos(node)), **pos(node)),
-        #                 [
-        #                     from_phpast(node.node.node),
-        #                     from_phpast(node.node.name),
-        #                     from_phpast(node.expr),
-        #                 ],
-        #                 [],
-        #                 None,
-        #                 None,
-        #                 **pos(node),
-        #             )
-        #         )
-        #     return py.Assign(
-        #         [store(from_phpast(node.node))], from_phpast(node.expr), **pos(node)
-        #     )
+            # if isinstance(node, php.Assignment):
+            #     if isinstance(node.node, php.ArrayOffset) and node.node.expr is None:
+            #         return py.Call(
+            #             py.Attribute(
+            #                 from_phpast(node.node.node),
+            #                 "append",
+            #                 py.Load(**pos(node)),
+            #                 **pos(node),
+            #             ),
+            #             [from_phpast(node.expr)],
+            #             [],
+            #             None,
+            #             None,
+            #             **pos(node),
+            #         )
+            #     if isinstance(node.node, php.ObjectProperty) and isinstance(
+            #         node.node.name, php.BinaryOp
+            #     ):
+            #         return to_stmt(
+            #             py.Call(
+            #                 py.Name("setattr", py.Load(**pos(node)), **pos(node)),
+            #                 [
+            #                     from_phpast(node.node.node),
+            #                     from_phpast(node.node.name),
+            #                     from_phpast(node.expr),
+            #                 ],
+            #                 [],
+            #                 None,
+            #                 None,
+            #                 **pos(node),
+            #             )
+            #         )
+            #     return py.Assign(
+            #         [store(from_phpast(node.node))], from_phpast(node.expr), **pos(node)
+            #     )
+
+            case _:
+                debug(node)
+                raise NotImplementedError()
 
 
 def to_stmt(pynode):
@@ -302,9 +423,9 @@ def to_stmt(pynode):
 #
 # Util
 #
-def pos(node):
+def pos(node: Node) -> dict:
     return {"lineno": 0, "col_offset": 0}
-    # return {"lineno": getattr(node, "lineno", 0), "col_offset": 0}
+    # return {"lineno": node._lineno, "col_offset": node._col_offset}
 
 
 def store(name):

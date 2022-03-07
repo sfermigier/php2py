@@ -2,33 +2,45 @@ from __future__ import annotations
 
 from typing import Any
 
-from attr import define
+from attr import dataclass
+from devtools import debug
+
+frozen = dataclass
 
 
-@define
+@frozen
 class Node:
     def __getitem__(self, item):
         if item == "nodeType":
             return self.__class__.__name__
         raise KeyError(item)
 
+    @property
+    def _lineno(self):
+        return self._attributes["line"]
 
-@define
+    @property
+    def _col_offset(self):
+        return 0
+        # return self._attributes["col_offset"]
+
+
+@frozen
 class Expr(Node):
     pass
 
 
-@define
+@frozen
 class Stmt(Node):
     pass
 
 
-@define
+@frozen
 class Scalar(Node):
     pass
 
 
-@define
+@frozen
 class Arg(Node):
     byRef: int
     unpack: int
@@ -36,36 +48,36 @@ class Arg(Node):
     value: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_File | Scalar_MagicConst_Function | Scalar_MagicConst_Line | Scalar_MagicConst_Method | Scalar_String
 
 
-@define
+@frozen
 class Attribute(Node):
     name: Name | Name_FullyQualified
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class AttributeGroup(Node):
     attrs: list[Node]
 
 
-@define
+@frozen
 class Const(Node):
     namespacedName: None
     name: Identifier
     value: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_Array(Expr):
     items: list[Any] | list[Expr] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_ArrayDimFetch(Expr):
     var: Expr
     dim: Expr | None | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Function | Scalar_String
 
 
-@define
+@frozen
 class Expr_ArrayItem(Expr):
     byRef: int
     unpack: int
@@ -73,7 +85,7 @@ class Expr_ArrayItem(Expr):
     value: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_File | Scalar_MagicConst_Function | Scalar_String
 
 
-@define
+@frozen
 class Expr_ArrowFunction(Expr):
     expr: Expr | Scalar_Encapsed
     attrGroups: list[Stmt]
@@ -83,286 +95,286 @@ class Expr_ArrowFunction(Expr):
     static: int
 
 
-@define
+@frozen
 class Expr_Assign(Expr):
+    var: Expr
     expr: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Dir | Scalar_MagicConst_File | Scalar_String
-    var: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_BitwiseAnd(Expr):
-    expr: Expr
     var: Expr
+    expr: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_BitwiseOr(Expr):
-    expr: Expr
     var: Expr
+    expr: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_Coalesce(Expr):
-    expr: Expr
     var: Expr
+    expr: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_Concat(Expr):
+    var: Expr
     expr: Expr | Scalar_Encapsed | Scalar_String
-    var: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_Div(Expr):
-    expr: Expr | Scalar_LNumber
     var: Expr
+    expr: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_AssignOp_Minus(Expr):
-    expr: Expr | Scalar_LNumber
     var: Expr
+    expr: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_AssignOp_Mul(Expr):
+    var: Expr
     expr: Expr | Scalar_LNumber
-    var: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_Plus(Expr):
+    var: Expr
     expr: Expr | Scalar_DNumber | Scalar_LNumber
-    var: Expr
 
 
-@define
+@frozen
 class Expr_AssignOp_ShiftRight(Expr):
+    var: Expr
     expr: Scalar_LNumber
-    var: Expr
 
 
-@define
+@frozen
 class Expr_AssignRef(Expr):
-    expr: Expr
     var: Expr
+    expr: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_BitwiseAnd(Expr):
-    right: Expr | Scalar_LNumber
     left: Expr
+    right: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_BitwiseOr(Expr):
-    right: Expr | Scalar_LNumber
     left: Expr
+    right: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_BitwiseXor(Expr):
-    right: Expr
     left: Expr
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_BooleanAnd(Expr):
-    right: Expr
     left: Expr | Scalar_String
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_BooleanOr(Expr):
-    right: Expr
     left: Expr
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_Coalesce(Expr):
-    right: Expr | Scalar_LNumber | Scalar_String
     left: Expr | Scalar_String
+    right: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_Concat(Expr):
-    right: Expr | Scalar_Encapsed | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_Function | Scalar_MagicConst_Line | Scalar_String
     left: Expr | Scalar_Encapsed | Scalar_MagicConst_Dir | Scalar_MagicConst_Function | Scalar_MagicConst_Method | Scalar_MagicConst_Namespace | Scalar_String
+    right: Expr | Scalar_Encapsed | Scalar_MagicConst_Class | Scalar_MagicConst_Dir | Scalar_MagicConst_Function | Scalar_MagicConst_Line | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_Div(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber
     left: Expr | Scalar_LNumber
+    right: Expr | Scalar_DNumber | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_Equal(Expr):
-    right: Expr | Scalar_Encapsed | Scalar_LNumber | Scalar_String
     left: Expr | Scalar_Encapsed | Scalar_LNumber | Scalar_String
+    right: Expr | Scalar_Encapsed | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_Greater(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
     left: Expr
+    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_GreaterOrEqual(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
     left: Expr
+    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_Identical(Expr):
+    left: Expr | Scalar_LNumber | Scalar_String
     right: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_String
-    left: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_LogicalAnd(Expr):
-    right: Expr
     left: Expr
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_LogicalOr(Expr):
-    right: Expr
     left: Expr
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_LogicalXor(Expr):
-    right: Expr
     left: Expr
+    right: Expr
 
 
-@define
+@frozen
 class Expr_BinaryOp_Minus(Expr):
-    right: Expr | Scalar_LNumber
     left: Expr | Scalar_LNumber
+    right: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_Mod(Expr):
-    right: Expr | Scalar_LNumber
     left: Expr
+    right: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_Mul(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber
     left: Expr | Scalar_DNumber | Scalar_LNumber
+    right: Expr | Scalar_DNumber | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BinaryOp_NotEqual(Expr):
-    right: Expr | Scalar_LNumber | Scalar_String
     left: Expr | Scalar_LNumber | Scalar_String
+    right: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_NotIdentical(Expr):
-    right: Expr | Scalar_LNumber | Scalar_String
     left: Expr | Scalar_LNumber | Scalar_String
+    right: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BinaryOp_Plus(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber
     left: Expr | Scalar_DNumber | Scalar_LNumber
-
-
-@define
-class Expr_BinaryOp_Pow(Expr):
-    right: Expr
-    left: Expr
-
-
-@define
-class Expr_BinaryOp_ShiftLeft(Expr):
-    right: Expr | Scalar_LNumber
-    left: Expr | Scalar_LNumber
-
-
-@define
-class Expr_BinaryOp_ShiftRight(Expr):
-    right: Expr | Scalar_LNumber
-    left: Expr
-
-
-@define
-class Expr_BinaryOp_Smaller(Expr):
-    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
-    left: Expr | Scalar_LNumber
-
-
-@define
-class Expr_BinaryOp_SmallerOrEqual(Expr):
     right: Expr | Scalar_DNumber | Scalar_LNumber
+
+
+@frozen
+class Expr_BinaryOp_Pow(Expr):
+    left: Expr
+    right: Expr
+
+
+@frozen
+class Expr_BinaryOp_ShiftLeft(Expr):
     left: Expr | Scalar_LNumber
+    right: Expr | Scalar_LNumber
 
 
-@define
-class Expr_BinaryOp_Spaceship(Expr):
+@frozen
+class Expr_BinaryOp_ShiftRight(Expr):
+    left: Expr
+    right: Expr | Scalar_LNumber
+
+
+@frozen
+class Expr_BinaryOp_Smaller(Expr):
+    left: Expr | Scalar_LNumber
     right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+
+
+@frozen
+class Expr_BinaryOp_SmallerOrEqual(Expr):
+    left: Expr | Scalar_LNumber
+    right: Expr | Scalar_DNumber | Scalar_LNumber
+
+
+@frozen
+class Expr_BinaryOp_Spaceship(Expr):
     left: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
+    right: Expr | Scalar_DNumber | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_BitwiseNot(Expr):
     expr: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_BooleanNot(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_Array(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_Bool(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_Double(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_Int(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_Object(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Cast_String(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_ClassConstFetch(Expr):
-    class_: Expr | Name | Name_FullyQualified
     name: Identifier
+    class_: Expr | Name | Name_FullyQualified
 
 
-@define
+@frozen
 class Expr_Clone(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Closure(Expr):
     attrGroups: list[Stmt]
     uses: list[Expr] | list[Stmt]
@@ -373,211 +385,211 @@ class Expr_Closure(Expr):
     static: int
 
 
-@define
+@frozen
 class Expr_ClosureUse(Expr):
-    byRef: int
     var: Expr
+    byRef: int
 
 
-@define
+@frozen
 class Expr_ConstFetch(Expr):
     name: Name | Name_FullyQualified
 
 
-@define
+@frozen
 class Expr_Empty(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_ErrorSuppress(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_Eval(Expr):
     expr: Expr | Scalar_String
 
 
-@define
+@frozen
 class Expr_Exit(Expr):
     expr: Expr | None | Scalar_Encapsed | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_FuncCall(Expr):
     name: Expr | Name | Name_FullyQualified
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_Include(Expr):
     expr: Expr | Scalar_Encapsed | Scalar_String
     type: int
 
 
-@define
+@frozen
 class Expr_Instanceof(Expr):
     expr: Expr
     class_: Expr | Name | Name_FullyQualified
 
 
-@define
+@frozen
 class Expr_Isset(Expr):
     vars: list[Expr]
 
 
-@define
+@frozen
 class Expr_List(Expr):
     items: list[Any] | list[Expr]
 
 
-@define
+@frozen
 class Expr_Match(Expr):
     cond: Expr | Scalar_DNumber
     arms: list[Node]
 
 
-@define
+@frozen
 class Expr_MethodCall(Expr):
     var: Expr
     name: Expr | Identifier | Scalar_Encapsed | Scalar_MagicConst_Class | Scalar_MagicConst_Function
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_New(Expr):
     class_: Expr | Name | Name_FullyQualified | Stmt_Class
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_NullsafeMethodCall(Expr):
     var: Expr
     name: Identifier
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_NullsafePropertyFetch(Expr):
     var: Expr
     name: Identifier
 
 
-@define
+@frozen
 class Expr_PostDec(Expr):
     var: Expr
 
 
-@define
+@frozen
 class Expr_PostInc(Expr):
     var: Expr
 
 
-@define
+@frozen
 class Expr_PreDec(Expr):
     var: Expr
 
 
-@define
+@frozen
 class Expr_PreInc(Expr):
     var: Expr
 
 
-@define
+@frozen
 class Expr_Print(Expr):
     expr: Scalar_String
 
 
-@define
+@frozen
 class Expr_PropertyFetch(Expr):
     var: Expr
     name: Expr | Identifier | Scalar_String
 
 
-@define
+@frozen
 class Expr_ShellExec(Expr):
     parts: list[Node]
 
 
-@define
+@frozen
 class Expr_StaticCall(Expr):
     class_: Expr | Name | Name_FullyQualified
     name: Expr | Identifier | Scalar_MagicConst_Class
     args: list[Node] | list[Stmt]
 
 
-@define
+@frozen
 class Expr_StaticPropertyFetch(Expr):
     class_: Expr | Name | Scalar_String
     name: Expr | VarLikeIdentifier
 
 
-@define
+@frozen
 class Expr_Ternary(Expr):
     if_: Expr | None | Scalar_Encapsed | Scalar_LNumber | Scalar_String
     cond: Expr
     else_: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_Throw(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Expr_UnaryMinus(Expr):
     expr: Expr | Scalar_DNumber | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_UnaryPlus(Expr):
     expr: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Expr_Variable(Expr):
     name: Expr | str
 
 
-@define
+@frozen
 class Expr_Yield(Expr):
     key: Expr | None | Scalar_String
     value: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Expr_YieldFrom(Expr):
     expr: Expr
 
 
-@define
+@frozen
 class Identifier(Node):
     name: str
 
 
-@define
+@frozen
 class MatchArm(Node):
     conds: None | list[Expr] | list[Scalar]
     body: Expr | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Name(Node):
     parts: list[Any]
 
 
-@define
+@frozen
 class Name_FullyQualified(Node):
     parts: list[Any]
 
 
-@define
+@frozen
 class NullableType(Node):
     type: Identifier | Name | Name_FullyQualified
 
 
-@define
+@frozen
 class Param(Node):
     flags: int
     attrGroups: list[Stmt]
@@ -588,85 +600,85 @@ class Param(Node):
     type: Identifier | Name | Name_FullyQualified | None | NullableType | UnionType
 
 
-@define
+@frozen
 class Scalar_DNumber(Scalar):
     value: float | int
 
 
-@define
+@frozen
 class Scalar_Encapsed(Scalar):
     parts: list[Expr] | list[Node]
 
 
-@define
+@frozen
 class Scalar_EncapsedStringPart(Scalar):
     value: str
 
 
-@define
+@frozen
 class Scalar_LNumber(Scalar):
     value: int
 
 
-@define
+@frozen
 class Scalar_MagicConst_Class(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_Dir(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_File(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_Function(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_Line(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_Method(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_MagicConst_Namespace(Scalar):
     pass
 
 
-@define
+@frozen
 class Scalar_String(Scalar):
     value: str
 
 
-@define
+@frozen
 class Stmt_Break(Stmt):
     num: None | Scalar_LNumber
 
 
-@define
+@frozen
 class Stmt_Case(Stmt):
     cond: Expr | None | Scalar_LNumber | Scalar_String
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_Catch(Stmt):
     var: Expr
     types: list[Node]
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_Class(Stmt):
     attrGroups: list[Stmt]
     flags: int
@@ -677,14 +689,14 @@ class Stmt_Class(Stmt):
     name: Identifier | None
 
 
-@define
+@frozen
 class Stmt_ClassConst(Stmt):
     flags: int
     attrGroups: list[Stmt]
     consts: list[Node]
 
 
-@define
+@frozen
 class Stmt_ClassMethod(Stmt):
     flags: int
     attrGroups: list[Node] | list[Stmt]
@@ -695,51 +707,51 @@ class Stmt_ClassMethod(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_Const(Stmt):
     consts: list[Node]
 
 
-@define
+@frozen
 class Stmt_Continue(Stmt):
     num: None | Scalar_LNumber
 
 
-@define
+@frozen
 class Stmt_Declare(Stmt):
     stmts: None
     declares: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_DeclareDeclare(Stmt):
     key: Identifier
     value: Scalar_LNumber
 
 
-@define
+@frozen
 class Stmt_Do(Stmt):
     stmts: list[Stmt]
     cond: Expr | Scalar_LNumber
 
 
-@define
+@frozen
 class Stmt_Echo(Stmt):
     exprs: list[Expr] | list[Node] | list[Scalar]
 
 
-@define
+@frozen
 class Stmt_Else(Stmt):
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_ElseIf(Stmt):
     cond: Expr
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_Enum(Stmt):
     attrGroups: list[Stmt]
     scalarType: Identifier | None
@@ -749,24 +761,24 @@ class Stmt_Enum(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_EnumCase(Stmt):
     expr: None | Scalar_LNumber | Scalar_String
     attrGroups: list[Stmt]
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_Expression(Stmt):
     expr: Expr
 
 
-@define
+@frozen
 class Stmt_Finally(Stmt):
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_For(Stmt):
     loop: list[Expr] | list[Stmt]
     init: list[Expr] | list[Stmt]
@@ -774,7 +786,7 @@ class Stmt_For(Stmt):
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_Foreach(Stmt):
     expr: Expr
     valueVar: Expr
@@ -783,7 +795,7 @@ class Stmt_Foreach(Stmt):
     keyVar: Expr | None
 
 
-@define
+@frozen
 class Stmt_Function(Stmt):
     attrGroups: list[Stmt]
     byRef: int
@@ -794,24 +806,24 @@ class Stmt_Function(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_Global(Stmt):
     vars: list[Expr]
 
 
-@define
+@frozen
 class Stmt_Goto(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_GroupUse(Stmt):
     uses: list[Stmt]
     type: int
     prefix: Name
 
 
-@define
+@frozen
 class Stmt_If(Stmt):
     elseifs: list[Stmt]
     cond: Expr | Scalar_LNumber
@@ -819,12 +831,12 @@ class Stmt_If(Stmt):
     else_: None | Stmt_Else
 
 
-@define
+@frozen
 class Stmt_InlineHTML(Stmt):
     value: str
 
 
-@define
+@frozen
 class Stmt_Interface(Stmt):
     attrGroups: list[Stmt]
     extends: list[Node] | list[Stmt]
@@ -833,23 +845,23 @@ class Stmt_Interface(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_Label(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_Namespace(Stmt):
     stmts: list[Stmt]
     name: Name | None
 
 
-@define
+@frozen
 class Stmt_Nop(Stmt):
     pass
 
 
-@define
+@frozen
 class Stmt_Property(Stmt):
     flags: int
     attrGroups: list[Stmt]
@@ -857,40 +869,40 @@ class Stmt_Property(Stmt):
     props: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_PropertyProperty(Stmt):
     default: Expr | None | Scalar_LNumber | Scalar_String
     name: VarLikeIdentifier
 
 
-@define
+@frozen
 class Stmt_Return(Stmt):
     expr: Expr | None | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_MagicConst_Dir | Scalar_String
 
 
-@define
+@frozen
 class Stmt_Static(Stmt):
     vars: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_StaticVar(Stmt):
     var: Expr
     default: Expr | None | Scalar_LNumber | Scalar_String
 
 
-@define
+@frozen
 class Stmt_Switch(Stmt):
     cases: list[Stmt]
     cond: Expr
 
 
-@define
+@frozen
 class Stmt_Throw(Stmt):
     expr: Expr
 
 
-@define
+@frozen
 class Stmt_Trait(Stmt):
     attrGroups: list[Stmt]
     namespacedName: None
@@ -898,13 +910,13 @@ class Stmt_Trait(Stmt):
     name: Identifier
 
 
-@define
+@frozen
 class Stmt_TraitUse(Stmt):
     adaptations: list[Stmt]
     traits: list[Node]
 
 
-@define
+@frozen
 class Stmt_TraitUseAdaptation_Alias(Stmt):
     newModifier: None | int
     newName: Identifier
@@ -912,42 +924,42 @@ class Stmt_TraitUseAdaptation_Alias(Stmt):
     trait: Name | None
 
 
-@define
+@frozen
 class Stmt_TryCatch(Stmt):
     finally_: None | Stmt_Finally
     stmts: list[Stmt]
     catches: list[Stmt]
 
 
-@define
+@frozen
 class Stmt_Unset(Stmt):
     vars: list[Expr]
 
 
-@define
+@frozen
 class Stmt_Use(Stmt):
     uses: list[Stmt]
     type: int
 
 
-@define
+@frozen
 class Stmt_UseUse(Stmt):
     alias: Identifier | None
     type: int
     name: Name
 
 
-@define
+@frozen
 class Stmt_While(Stmt):
     cond: Expr | Scalar_LNumber
     stmts: list[Stmt]
 
 
-@define
+@frozen
 class UnionType(Node):
     types: list[Node]
 
 
-@define
+@frozen
 class VarLikeIdentifier(Node):
     name: str

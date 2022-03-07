@@ -65,6 +65,7 @@ pyyaml = "*"
 restructuredtext_lint = "*"
 
 ## /standard cruft
+rich = "^11.2.0"
 
 
 [tool.isort]
