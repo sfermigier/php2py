@@ -1,0 +1,76 @@
+[tool]
+[tool.poetry]
+name = "php2py"
+version = "0.1.0"
+homepage = "https://github.com/sfermigier/php2py"
+description = "Top-level package for php2py."
+authors = ["Abilian SAS <sf@abilian.com>"]
+readme = "README.rst"
+classifiers=[
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Developers',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+]
+packages = [
+    { include = "php2py", from = "src" },
+    { include = "tests", format = "sdist" },
+]
+
+
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4"
+
+
+[tool.poetry.dev-dependencies]
+## Standard cruft
+
+# Cruft (project templates management)
+cruft = "*"
+toml = "*"
+
+# Testing
+pytest = "*"
+pytest-cov = "*"
+coveralls = "*"
+
+# Linting
+flake8 = "*"
+flake8-bugbear = "*"
+flake8-comprehensions = "*"
+flake8-mutable = "*"
+flake8-pytest = "*"
+flake8-super-call = "*"
+flake8-tidy-imports = "*"
+mastool = "*"
+mccabe = "*"
+mypy = "*"
+
+# Formatting
+isort = "*"
+black = "*"
+
+# Other tools
+profilehooks = "*"
+pre-commit = "*"
+safety = "*"
+
+# Needed for some reason
+pyyaml = "*"
+
+# Doc
+restructuredtext_lint = "*"
+
+## /standard cruft
+
+
+[tool.isort]
+profile = "black"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
