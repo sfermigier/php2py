@@ -7,7 +7,6 @@ from attr import define
 
 @define
 class Node:
-
     def __getitem__(self, item):
         if item == "nodeType":
             return self.__class__.__name__
@@ -952,5 +951,3 @@ class UnionType(Node):
 @define
 class VarLikeIdentifier(Node):
     name: str
-
-

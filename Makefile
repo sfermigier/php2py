@@ -49,7 +49,7 @@ lint/flake8: ## check style with flake8
 	flake8 src tests
 
 lint/black: ## check style with black
-	black --check src tests
+	black --target-version py310 --check src tests
 
 lint: lint/flake8 lint/black ## check style
 
@@ -118,7 +118,7 @@ format: format-py format-js
 
 format-py:
 	docformatter -i -r src
-	black src tests
+	black --target-version py310 src tests
 	isort src tests
 
 format-js:

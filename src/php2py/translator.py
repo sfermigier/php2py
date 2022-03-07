@@ -4,8 +4,22 @@ import ast as py
 
 from devtools import debug
 
-from php2py.php_ast import Node, Stmt_Namespace, Stmt_Class, Stmt_Use, Stmt_Return, \
-    Stmt_ClassMethod, Scalar_String, Expr_StaticCall, Stmt_Expression, Expr_Assign, Stmt_Echo
+from php2py.php_ast import (
+    Expr_Assign,
+    Expr_Exit,
+    Expr_PropertyFetch,
+    Expr_StaticCall,
+    Node,
+    Scalar_LNumber,
+    Scalar_String,
+    Stmt_Class,
+    Stmt_ClassMethod,
+    Stmt_Echo,
+    Stmt_Expression,
+    Stmt_Namespace,
+    Stmt_Return,
+    Stmt_Use,
+)
 
 unary_ops = {
     "~": py.Invert,
@@ -83,8 +97,11 @@ class Translator:
 
     def translate_scalar(self, node):
         match node:
-            case Scalar_String():
-                return py.Str(node.value)
+            case Scalar_String(value):
+                return py.Str(value)
+
+            case Scalar_LNumber(value):
+                return py.Str(value)
 
     def translate_expr(self, node):
         match node:
@@ -125,11 +142,35 @@ class Translator:
                 # debug(node.expr)
                 # assert False
                 return py.Assign(
-                    [store(self.translate(node.var))], self.translate(node.expr), **pos(node)
+                    [store(self.translate(node.var))],
+                    self.translate(node.expr),
+                    **pos(node),
                 )
 
             case Expr_StaticCall():
                 return
+
+            case Expr_Exit(expr):
+                args = []
+                if expr is not None:
+                    args.append(self.translate(expr))
+                return py.Raise(
+                    py.Call(
+                        py.Name("SystemExit", py.Load()),
+                        args,
+                        [],
+                    ),
+                    None,
+                )
+
+            case Expr_PropertyFetch(var=var, name=name):
+                # if isinstance(node.name, (Variable, BinaryOp)):
+                #     return py.Call(
+                #         py.Name("getattr", py.Load()),
+                #         [self.translate(node.node), self.translate(node.name)],
+                #         [],
+                #     )
+                return py.Attribute(self.translate(var), name, py.Load())
 
     def translate_stmt(self, node):
         match node:
@@ -161,17 +202,20 @@ class Translator:
                 body = list(map(to_stmt, list(map(self.translate, node.stmts))))
 
                 for stmt in body:
-                    if isinstance(stmt, py.FunctionDef) and stmt.name in (name, "__construct"):
+                    if isinstance(stmt, py.FunctionDef) and stmt.name in (
+                        name,
+                        "__construct",
+                    ):
                         stmt.name = "__init__"
                 if not body:
                     body = [py.Pass(**pos(node))]
                 return py.ClassDef(name, bases, body, [], **pos(node))
 
-            case Stmt_Return():
-                if node.expr is None:
-                    return py.Return(None, **pos(node))
+            case Stmt_Return(expr):
+                if expr is None:
+                    return py.Return(None)
                 else:
-                    return py.Return(self.translate(node.expr), **pos(node))
+                    return py.Return(self.translate(expr))
 
             case Stmt_ClassMethod():
                 args = []
@@ -245,7 +289,6 @@ class Translator:
         #     )
 
 
-
 def to_stmt(pynode):
     if pynode is None:
         return py.Expr()
@@ -301,5 +344,3 @@ def build_format(left, right):
         pattern += "%s"
         pieces.append(right)
     return pattern, pieces
-
-

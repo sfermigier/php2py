@@ -3,9 +3,9 @@ import shlex
 import subprocess
 import tempfile
 
-from . import php_ast
-
 from devtools import debug
+
+from . import php_ast
 
 
 def parse(source_code: str):
@@ -15,14 +15,18 @@ def parse(source_code: str):
 
         cmd_line = f"vendor/nikic/php-parser/bin/php-parse -j {source_file.name}"
         args = shlex.split(cmd_line)
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p:
+        with subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+        ) as p:
             json_ast = json.load(p.stdout)
             result = make_ast(json_ast)
 
     return result
 
 
-def make_ast(json_node):
+def make_ast(
+    json_node: list | dict | str | int | None,
+) -> php_ast.Node | list[php_ast.Node] | None:
     if isinstance(json_node, list):
         result = []
         return [make_ast(subnode) for subnode in json_node]
