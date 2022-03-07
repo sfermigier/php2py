@@ -158,6 +158,17 @@ def test_echo():
     check_compiles(input, expected)
 
 
+def test_string_unescape():
+    # TODO: check this is correct
+    input = r"""<?php "\r\n\t" ?>"""
+    expected = '"""\\r\n\t"""'
+    check_compiles(input, expected)
+
+    # input = r"""<?php '\r\n\t' ?>"""
+    # expected = '"""\\r\\n\\t"""'
+    # check_compiles(input, expected)
+
+
 def xxtest_object_properties():
     input = r"""<?php
         $object->property;

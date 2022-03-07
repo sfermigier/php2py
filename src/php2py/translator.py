@@ -147,10 +147,13 @@ class Translator:
                 name = parts[0]
                 if name.lower() == "true":
                     name = "True"
-                if name.lower() == "false":
+                elif name.lower() == "false":
                     name = "False"
-                if name.lower() == "null":
+                elif name.lower() == "null":
                     name = "None"
+                else:
+                    raise NotImplemented(str(name))
+
                 return py.Name(name, py.Load())
 
             case Expr_UnaryPlus(expr):

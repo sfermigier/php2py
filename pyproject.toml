@@ -67,6 +67,7 @@ restructuredtext_lint = "*"
 ## /standard cruft
 rich = "^11.2.0"
 devtools = "^0.8.0"
+icecream = "^2.1.2"
 
 
 [tool.isort]
