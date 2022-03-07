@@ -23,3 +23,27 @@ def test_new():
     """
     expected = "Rocket()"
     check_compiles(input, expected)
+
+
+def test_new_with_args():
+    input = r"""<?php
+        new Rocket(1);
+    """
+    expected = "Rocket()"
+    check_compiles(input, expected)
+
+
+def test_method_call():
+    input = r"""<?php
+        $r->fire();
+    """
+    expected = "r.fire()"
+    check_compiles(input, expected)
+
+
+def test_method_call_with_args():
+    input = r"""<?php
+        $r->fire(1, 'a');
+    """
+    expected = "r.fire(1, 'a')"
+    check_compiles(input, expected)

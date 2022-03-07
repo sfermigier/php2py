@@ -37,9 +37,11 @@ from php2py.php_ast import (
     Scalar_DNumber,
     Scalar_LNumber,
     Scalar_String,
+    Stmt_Break,
     Stmt_Class,
     Stmt_ClassConst,
     Stmt_ClassMethod,
+    Stmt_Continue,
     Stmt_Echo,
     Stmt_Expression,
     Stmt_For,
@@ -50,6 +52,7 @@ from php2py.php_ast import (
     Stmt_Nop,
     Stmt_Property,
     Stmt_Return,
+    Stmt_Throw,
     Stmt_Use,
     Stmt_While,
 )
@@ -368,8 +371,6 @@ class Translator:
             case Expr_FuncCall(name=name, args=args):
                 name = name._json["parts"][0]
                 func = py.Name(name, py.Load())
-                # TODO
-                # if isinstance(node, (php.FunctionCall, php.New)):
 
                 # if isinstance(name, str):
                 #     name = py.Name(name, py.Load())
@@ -390,40 +391,12 @@ class Translator:
             case Expr_New(class_=class_, args=args):
                 name = class_._json["parts"][0]
                 func = py.Name(name, py.Load())
-                # TODO
-                # if isinstance(node, (php.FunctionCall, php.New)):
-
-                # if isinstance(name, str):
-                #     name = py.Name(name, py.Load())
-                # else:
-                #     name = py.Subscript(
-                #         py.Call(
-                #             func=py.Name("vars", py.Load()),
-                #             args=[],
-                #             keywords=[],
-                #             **pos(node),
-                #         ),
-                #         py.Index(self.translate(node.name)),
-                #         py.Load(),
-                #     )
-                # args, kwargs = build_args(node.params)
                 return py.Call(func=func, args=args, keywords=[], **pos(node))
 
-            case Expr_MethodCall():
-                args, kwargs = build_args(node.params)
-                return py.Call(
-                    py.Attribute(
-                        self.translate(node.node),
-                        node.name,
-                        py.Load(**pos(node)),
-                        **pos(node),
-                    ),
-                    args,
-                    kwargs,
-                    None,
-                    None,
-                    **pos(node),
-                )
+            case Expr_MethodCall(var=var, name=name, args=args):
+                name = name.name
+                func = py.Attribute(self.translate(var), name, py.Load())
+                return py.Call(func=func, args=args, keywords=[], **pos(node))
 
             case Expr_StaticCall():
                 return
@@ -535,6 +508,14 @@ class Translator:
                     **pos(node),
                 )
 
+            case Stmt_Break(num=num):
+                assert num is None, "level on break not supported"
+                return py.Break(**pos(node))
+
+            case Stmt_Continue(num=num):
+                assert num is None, "level on continue not supported"
+                return py.Continue(**pos(node))
+
             # case Stmt_DoWhile():
             #     condition = php.If(
             #         php.UnaryOp("!", node.expr, lineno=node.lineno),
@@ -558,9 +539,8 @@ class Translator:
                 args = []
                 defaults = []
                 for param in params:
-                    args.append(
-                        py.Name(param.name[1:], py.Param(**pos(node)), **pos(node))
-                    )
+                    param_name = param.var.name
+                    args.append(py.Name(param_name, py.Param()))
                     if param.default is not None:
                         defaults.append(self.translate(param.default))
 
@@ -786,6 +766,28 @@ class Translator:
                     py.Load(**pos(node)),
                     **pos(node),
                 )
+
+            #
+            # Exceptions
+            #
+            # if isinstance(node, php.Try):
+            #     return py.TryExcept(
+            #         list(map(to_stmt, list(map(from_phpast, node.nodes)))),
+            #         [
+            #             py.ExceptHandler(
+            #                 py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),
+            #                 store(from_phpast(catch.var)),
+            #                 list(map(to_stmt, list(map(from_phpast, catch.nodes)))),
+            #                 **pos(node),
+            #             )
+            #             for catch in node.catches
+            #         ],
+            #         [],
+            #         **pos(node),
+            #     )
+
+            case Stmt_Throw(expr):
+                return py.Raise(self.translate(expr), None, None, **pos(node))
 
             case _:
                 debug(node)

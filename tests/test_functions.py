@@ -12,6 +12,17 @@ def test_function():
     check_compiles(input, expected)
 
 
+def test_function_with_args():
+    input = """<?php
+        function foo($bar) {
+            echo $bar;
+        }
+        foo();
+    """
+    expected = "def foo(bar):\n" "    echo(bar)\n" "foo()"
+    check_compiles(input, expected)
+
+
 def xtest_function2():
     input = """<?php
         /**
