@@ -17,6 +17,8 @@ from php2py.php_ast import (
     Expr_AssignOp_Minus,
     Expr_AssignOp_Plus,
     Expr_BinaryOp,
+    Expr_BinaryOp_BooleanAnd,
+    Expr_BooleanNot,
     Expr_Cast,
     Expr_Cast_Array,
     Expr_Cast_Bool,
@@ -25,7 +27,9 @@ from php2py.php_ast import (
     Expr_Cast_Object,
     Expr_Cast_String,
     Expr_ClassConstFetch,
+    Expr_Closure,
     Expr_ConstFetch,
+    Expr_Empty,
     Expr_Exit,
     Expr_FuncCall,
     Expr_Isset,
@@ -59,6 +63,7 @@ from php2py.php_ast import (
     Stmt_Property,
     Stmt_Return,
     Stmt_Throw,
+    Stmt_TryCatch,
     Stmt_Unset,
     Stmt_Use,
     Stmt_While,
@@ -142,9 +147,11 @@ class Translator:
         match node:
             case Arg(name=name, value=value):
                 debug(node)
+                assert False, "Should not happen"
 
             case Name():
                 debug(node)
+                assert False, "Should not happen"
 
             case _:
                 rich.print(f"[red]Ignoring node: {node}[/red]")
@@ -442,6 +449,13 @@ class Translator:
                             [py.Name("None", py.Load())],
                         )
 
+            case Expr_Empty(expr):
+                return self.translate(
+                    Expr_BooleanNot(
+                        Expr_BinaryOp_BooleanAnd(Expr_Isset([node.expr]), expr)
+                    )
+                )
+
             case Expr_FuncCall(name=name, args=args):
                 name = name._json["parts"][0]
                 func = py.Name(name, py.Load())
@@ -471,7 +485,7 @@ class Translator:
             case Expr_MethodCall(var=var, name=name, args=args):
                 name = name.name
                 args, kwargs = self.build_args(args)
-                func = py.Attribute(self.translate(var), name, py.Load())
+                func = py.Attribute(value=self.translate(var), attr=name, ctx=py.Load())
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_StaticCall():
@@ -479,8 +493,6 @@ class Translator:
                 return
 
             case Expr_ArrayDimFetch(var=var, dim=dim):
-                debug(var, dim)
-                debug(node._json)
                 if dim:
                     return py.Subscript(
                         value=self.translate(var),
@@ -501,10 +513,15 @@ class Translator:
             case Expr_ClassConstFetch(name=name, class_=class_):
                 return py.Attribute(
                     value=py.Name(id=class_, ctx=py.Load()),
-                    attr=name,
+                    attr=name.name,
                     ctx=py.Load(),
                     **pos(node),
                 )
+
+            case Expr_Closure():
+                return
+                # debug(node)
+                # debug(node._json)
 
             case _:
                 debug(node)
@@ -719,9 +736,16 @@ class Translator:
                 if not body:
                     body = [py.Pass(**pos(node))]
 
-                return py.ClassDef(name, bases, body, [], **pos(node))
+                return py.ClassDef(
+                    name=name,
+                    bases=bases,
+                    keywords=[],
+                    body=body,
+                    decorator_list=[],
+                    **pos(node),
+                )
 
-            case Stmt_ClassMethod(stmts=stmts):
+            case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
                 args = []
                 defaults = []
                 decorator_list = []
@@ -746,12 +770,18 @@ class Translator:
                 if not body:
                     body = [py.Pass()]
 
+                arguments = py.arguments(
+                    posonlyargs=[],
+                    args=args,
+                    vararg=None,
+                    kwonlyargs=[],
+                    kw_defaults=[],
+                    kwarg=None,
+                    defaults=defaults,
+                )
+
                 return py.FunctionDef(
-                    node.name,
-                    py.arguments(args, None, None, defaults),
-                    body,
-                    decorator_list,
-                    **pos(node),
+                    name.name, arguments, body, decorator_list, **pos(node)
                 )
 
             # case Stmt_Method():
@@ -865,16 +895,14 @@ class Translator:
                 )
 
             case Stmt_Property(props=props):
-                debug(node)
-                debug(props)
-                if isinstance(node.name, (php.Variable, php.BinaryOp)):
-                    return py.Call(
-                        func=py.Name("getattr", py.Load(**pos(node)), **pos(node)),
-                        args=[self.translate(node.node), self.translate(node.name)],
-                        keywords=[],
-                        **pos(node),
-                    )
-
+                # if isinstance(node.name, (php.Variable, php.BinaryOp)):
+                #     return py.Call(
+                #         func=py.Name("getattr", py.Load(**pos(node)), **pos(node)),
+                #         args=[self.translate(node.node), self.translate(node.name)],
+                #         keywords=[],
+                #         **pos(node),
+                #     )
+                assert False
                 return py.Attribute(
                     self.translate(node.node),
                     node.name,
@@ -901,8 +929,24 @@ class Translator:
             #         **pos(node),
             #     )
 
+            case Stmt_TryCatch(stmts=stmts, catches=catches, finally_=finally_):
+                return py.Try(
+                    body=[to_stmt(self.translate(node)) for node in stmts],
+                    handlers=[],
+                    #     py.ExceptHandler(
+                    #         py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),
+                    #         store(self.translate(catches.var)),
+                    #         [to_stmt(self.translate(node)) for node in catches],
+                    #     )
+                    #     for catch in node.catches
+                    # ],
+                    orelse=[],
+                    finalbody=[],
+                    **pos(node),
+                )
+
             case Stmt_Throw(expr):
-                return py.Raise(self.translate(expr), None, None, **pos(node))
+                return py.Raise(exc=self.translate(expr), cause=None, **pos(node))
 
             case _:
                 debug(node)
@@ -911,22 +955,18 @@ class Translator:
                 )
 
     def build_args(self, php_args: list[Node]):
-        debug(php_args)
         args = []
         kwargs = []
         for arg in php_args:
             match arg:
                 case Arg(name=None, value=value):
                     args.append(self.translate(value))
+
                 case Arg(name=name, value=value):
                     kwargs.append(py.keyword(name, self.translate(value)))
 
-                # debug(arg)
-            # node = self.translate(arg)
-            # if isinstance(node, py.Assign):
-            #     kwargs.append(py.keyword(node.targets[0].id, node.value))
-            # else:
-            #     args.append(node)
+                case _:
+                    raise NotImplemented("Should not happen")
 
         return args, kwargs
 
@@ -955,13 +995,6 @@ def pos(node: Node) -> dict:
 def store(name):
     name.ctx = py.Store(**pos(name))
     return name
-
-
-def deblock(node):
-    if isinstance(node, Block):
-        return node.nodes
-    else:
-        return [node]
 
 
 def build_format(left, right):

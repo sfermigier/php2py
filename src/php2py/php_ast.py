@@ -705,13 +705,13 @@ class Stmt_ClassConst(Stmt):
 
 @frozen
 class Stmt_ClassMethod(Stmt):
+    name: Identifier
+    params: list[Node] | list[Stmt]
+    stmts: None | list[Stmt]
     flags: int
     attrGroups: list[Node] | list[Stmt]
     byRef: int
     returnType: Identifier | Name | Name_FullyQualified | None | NullableType | UnionType
-    stmts: None | list[Stmt]
-    params: list[Node] | list[Stmt]
-    name: Identifier
 
 
 @frozen
@@ -933,9 +933,9 @@ class Stmt_TraitUseAdaptation_Alias(Stmt):
 
 @frozen
 class Stmt_TryCatch(Stmt):
-    finally_: None | Stmt_Finally
     stmts: list[Stmt]
     catches: list[Stmt]
+    finally_: None | Stmt_Finally
 
 
 @frozen
