@@ -57,7 +57,7 @@ def make_ast(
         match value:
             case [*_]:
                 args[attr] = make_ast(value)
-            case {"nodeType": _, **rest}:
+            case {"nodeType": _}:
                 args[attr] = make_ast(value)
             case _:
                 args[attr] = value

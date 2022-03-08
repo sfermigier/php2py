@@ -2,7 +2,6 @@
 
 import ast as py
 
-import rich
 from devtools import debug
 
 from php2py.php_ast import (
@@ -10,10 +9,9 @@ from php2py.php_ast import (
     Expr_Array,
     Expr_ArrayDimFetch,
     Expr_Assign,
-    Expr_AssignOp_BitwiseXor,
-    Expr_AssignOp_Concat,
-    Expr_AssignOp_Minus,
-    Expr_AssignOp_Plus,
+    Expr_AssignOp,
+    Expr_AssignOp_Coalesce,
+    Expr_AssignRef,
     Expr_BinaryOp,
     Expr_BinaryOp_BooleanAnd,
     Expr_BooleanNot,
@@ -44,7 +42,6 @@ from php2py.php_ast import (
     Expr_UnaryOp,
     Expr_Variable,
     Expr_Yield,
-    Name,
     Node,
     Scalar_DNumber,
     Scalar_LNumber,
@@ -318,43 +315,25 @@ class Translator:
             #
             # Assign ops
             #
-            case Expr_AssignOp_Plus(var=var, expr=expr):
+            case Expr_AssignRef():
+                raise NotImplementedError()
+                # return f"""{self.parse(node['var'])} = {self.parse(node['expr'])}"""
+
+            case Expr_AssignOp_Coalesce():
+                raise NotImplementedError()
+                # # TODO
+                # lhs = self.parse(node['var'])
+                # rhs = self.parse(node['expr'])
+                # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
+
+            case Expr_AssignOp(var=var, expr=expr):
+                assert isinstance(var.name, str)
+                op = binary_ops[node.op[0:-1]]()
                 return py.AugAssign(
-                    target=py.Name(id="xxx", ctx=py.Store()),
+                    target=py.Name(id=var.name, ctx=py.Store()),
                     op=py.Add(),
                     value=self.translate(expr),
-                )
-                # debug(node)
-                # assert False
-                # return from_phpast(
-                #     php.Assignment(
-                #         node.left,
-                #         php.BinaryOp(node.op[:-1], node.left, node.right, lineno=node.lineno),
-                #         False,
-                #         lineno=node.lineno,
-                #     )
-                # )
-
-            case Expr_AssignOp_Minus(var=var, expr=expr):
-                return py.AugAssign(
-                    target=py.Name(id="xxx", ctx=py.Store()),
-                    op=py.Sub(),
-                    value=self.translate(expr),
-                )
-
-            case Expr_AssignOp_Concat(var=var, expr=expr):
-                return py.AugAssign(
-                    target=py.Name(id="xxx", ctx=py.Store()),
-                    op=py.Add(),
-                    value=self.translate(expr),
-                )
-                pass
-
-            case Expr_AssignOp_BitwiseXor(var=var, expr=expr):
-                return py.AugAssign(
-                    target=py.Name(id="xxx", ctx=py.Store()),
-                    op=py.BitXor(),
-                    value=self.translate(expr),
+                    **pos(node),
                 )
 
             case Expr_Assign(var=var, expr=expr):
@@ -1020,16 +999,16 @@ def store(name):
     return name
 
 
-def build_format(left, right):
-    if isinstance(left, str):
-        pattern, pieces = left.replace("%", "%%"), []
-    elif isinstance(left, php.BinaryOp) and left.op == ".":
-        pattern, pieces = build_format(left.left, left.right)
-    else:
-        pattern, pieces = "%s", [left]
-    if isinstance(right, str):
-        pattern += right.replace("%", "%%")
-    else:
-        pattern += "%s"
-        pieces.append(right)
-    return pattern, pieces
+# def build_format(left, right):
+#     if isinstance(left, str):
+#         pattern, pieces = left.replace("%", "%%"), []
+#     elif isinstance(left, php.BinaryOp) and left.op == ".":
+#         pattern, pieces = build_format(left.left, left.right)
+#     else:
+#         pattern, pieces = "%s", [left]
+#     if isinstance(right, str):
+#         pattern += right.replace("%", "%%")
+#     else:
+#         pattern += "%s"
+#         pieces.append(right)
+#     return pattern, pieces

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from attr import dataclass
-from devtools import debug
 
 frozen = dataclass
 
@@ -102,63 +101,61 @@ class Expr_Assign(Expr):
 
 
 @frozen
-class Expr_AssignOp_BitwiseAnd(Expr):
+class Expr_AssignOp(Expr):
+    """Abstract base class."""
+
     var: Expr
     expr: Expr
 
 
 @frozen
-class Expr_AssignOp_BitwiseOr(Expr):
-    var: Expr
-    expr: Expr
+class Expr_AssignOp_BitwiseAnd(Expr_AssignOp):
+    op = "&="
 
 
 @frozen
-class Expr_AssignOp_BitwiseXor(Expr):
-    var: Expr
-    expr: Expr
+class Expr_AssignOp_BitwiseOr(Expr_AssignOp):
+    op = "|="
 
 
 @frozen
-class Expr_AssignOp_Coalesce(Expr):
-    var: Expr
-    expr: Expr
+class Expr_AssignOp_BitwiseXor(Expr_AssignOp):
+    op = "^="
 
 
 @frozen
-class Expr_AssignOp_Concat(Expr):
-    var: Expr
-    expr: Expr | Scalar_Encapsed | Scalar_String
+class Expr_AssignOp_Coalesce(Expr_AssignOp):
+    op = "??="
 
 
 @frozen
-class Expr_AssignOp_Div(Expr):
-    var: Expr
-    expr: Expr | Scalar_LNumber
+class Expr_AssignOp_Concat(Expr_AssignOp):
+    op = ".="
 
 
 @frozen
-class Expr_AssignOp_Minus(Expr):
-    var: Expr
-    expr: Expr | Scalar_LNumber
+class Expr_AssignOp_Div(Expr_AssignOp):
+    op = "/="
 
 
 @frozen
-class Expr_AssignOp_Mul(Expr):
-    var: Expr
-    expr: Expr | Scalar_LNumber
+class Expr_AssignOp_Minus(Expr_AssignOp):
+    op = "-="
 
 
 @frozen
-class Expr_AssignOp_Plus(Expr):
-    var: Expr
-    expr: Expr | Scalar_DNumber | Scalar_LNumber
+class Expr_AssignOp_Mul(Expr_AssignOp):
+    op = "*="
 
 
 @frozen
-class Expr_AssignOp_ShiftRight(Expr):
-    var: Expr
-    expr: Scalar_LNumber
+class Expr_AssignOp_Plus(Expr_AssignOp):
+    op = "+="
+
+
+@frozen
+class Expr_AssignOp_ShiftRight(Expr_AssignOp):
+    op = ">>="
 
 
 @frozen
@@ -167,8 +164,13 @@ class Expr_AssignRef(Expr):
     expr: Expr
 
 
+#
+# Binary ops
+#
 @frozen
 class Expr_BinaryOp(Expr):
+    """Abstract base class for all binary ops."""
+
     left: Expr
     right: Expr
 

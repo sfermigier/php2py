@@ -27,7 +27,16 @@ def test_assignment_ops():
         $c .= $d;
         $e ^= $f;
     ?>"""
-    expected = "xxx += 5\n" "\n" "xxx -= 6\n" "\n" "xxx += d\n" "\n" "xxx ^= f"
+    expected = (
+        "a += 5\n"
+        "\n"
+        "b += 6\n"
+        "\n"
+        "c += d\n"
+        "\n"
+        "e += f"
+        #
+    )
     check_compiles(input, expected)
 
 

@@ -23,6 +23,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
+astor = "^0.8.1"
 
 
 [tool.poetry.dev-dependencies]

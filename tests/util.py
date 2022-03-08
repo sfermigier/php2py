@@ -72,7 +72,8 @@ def check_compiles(input, expected):
         rich.print("[red]Error while translating[/red]")
         print("php_ast:")
         dump_php_ast(php_ast)
-        print("py_ast=", astpretty.pprint(py_ast, indent="  "))
+        print("py_ast=", ast.dump(py_ast, indent=2))
+        # print("py_ast=", astpretty.pprint(py_ast, indent="  "))
         raise
 
     output = output.strip()
@@ -80,7 +81,8 @@ def check_compiles(input, expected):
     if expected != output:
         print("php_ast:")
         dump_php_ast(php_ast)
-        print("py_ast=", astpretty.pprint(py_ast, indent="  "))
+        print("py_ast=", ast.dump(py_ast, indent=2))
+        # print("py_ast=", astpretty.pprint(py_ast, indent="  "))
         debug(output)
 
     assert expected == output
