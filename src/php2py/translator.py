@@ -155,17 +155,8 @@ class Translator:
                 # assert False
 
     def translate_other(self, node):
-        match node:
-            case Arg(name=name, value=value):
-                debug(node)
-                assert False, "Should not happen"
-
-            case Name():
-                debug(node)
-                assert False, "Should not happen"
-
-            case _:
-                rich.print(f"[red]Ignoring node: {node}[/red]")
+        debug(node)
+        assert False, "Should not happen"
 
     def translate_scalar(self, node):
         match node:
@@ -428,11 +419,9 @@ class Translator:
                 #         [self.translate(node.node), self.translate(node.name)],
                 #         [],
                 #     )
-                result = py.Attribute(
+                return py.Attribute(
                     value=self.translate(var), attr=name, ctx=py.Load(), **pos(node)
                 )
-                assert isinstance(result.attr, str)
-                return result
 
             case Expr_Isset(vars):
                 debug(vars)
@@ -1020,7 +1009,8 @@ def to_stmt(pynode):
 
 
 def pos(node: Node) -> dict:
-    return {"lineno": 0, "col_offset": 0}
+    lineno = getattr(node, "_lineno", 0)
+    return {"lineno": lineno, "col_offset": 0}
     # return {"lineno": node._lineno, "col_offset": node._col_offset}
 
 

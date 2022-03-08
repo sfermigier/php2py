@@ -68,6 +68,7 @@ restructuredtext_lint = "*"
 rich = "^11.2.0"
 devtools = "^0.8.0"
 icecream = "^2.1.2"
+astpretty = "^2.1.0"
 
 
 [tool.isort]

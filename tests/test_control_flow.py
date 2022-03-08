@@ -88,11 +88,11 @@ def test_foreach():
     check_compiles(input, expected)
 
 
-def test_for():
-    input = r"""<?php
-        for ($i = 0; $i < 10; $i++) {
-            echo $i;
-        }
-    ?>"""
-    expected = ""
-    check_compiles(input, expected)
+# def test_for():
+#     input = r"""<?php
+#         for ($i = 0; $i < 10; $i++) {
+#             echo $i;
+#         }
+#     ?>"""
+#     expected = ""
+#     check_compiles(input, expected)
