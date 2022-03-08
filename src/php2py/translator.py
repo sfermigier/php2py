@@ -7,10 +7,8 @@ from devtools import debug
 
 from php2py.php_ast import (
     Arg,
-    Const,
     Expr_Array,
     Expr_ArrayDimFetch,
-    Expr_ArrayItem,
     Expr_Assign,
     Expr_AssignOp_BitwiseXor,
     Expr_AssignOp_Concat,
@@ -35,12 +33,15 @@ from php2py.php_ast import (
     Expr_Isset,
     Expr_MethodCall,
     Expr_New,
+    Expr_PostDec,
+    Expr_PostInc,
+    Expr_PreDec,
+    Expr_PreInc,
     Expr_PropertyFetch,
     Expr_StaticCall,
     Expr_Ternary,
     Expr_UnaryOp,
     Expr_Variable,
-    Identifier,
     Name,
     Node,
     Scalar_DNumber,
@@ -48,7 +49,6 @@ from php2py.php_ast import (
     Scalar_String,
     Stmt_Break,
     Stmt_Class,
-    Stmt_ClassConst,
     Stmt_ClassMethod,
     Stmt_Continue,
     Stmt_Echo,
@@ -88,12 +88,18 @@ binary_ops = {
     "|": py.BitOr,
     "&": py.BitAnd,
     "^": py.BitXor,
-    # Bool
+    # Strings
+    ".": py.Add,
+}
+
+bool_ops = {
     "&&": py.And,
     "||": py.Or,
     "and": py.And,
     "or": py.Or,
-    # Compare
+}
+
+compare_ops = {
     "!=": py.NotEq,
     "!==": py.IsNot,
     "<>": py.NotEq,
@@ -103,8 +109,6 @@ binary_ops = {
     "===": py.Is,
     ">": py.Gt,
     ">=": py.GtE,
-    # Strings
-    ".": py.Add,
 }
 
 # casts = {
@@ -223,8 +227,28 @@ class Translator:
             # Binary ops
             #
             case Expr_BinaryOp(left, right):
-                op = binary_ops[node.op]()
-                return py.BinOp(self.translate(left), op, self.translate(right))
+                if node.op in binary_ops:
+                    op = binary_ops[node.op]()
+                    return py.BinOp(self.translate(left), op, self.translate(right))
+
+                elif node.op in compare_ops:
+                    op = compare_ops[node.op]()
+                    return py.Compare(
+                        self.translate(left),
+                        [op],
+                        [self.translate(node.right)],
+                        **pos(node),
+                    )
+
+                elif node.op in bool_ops:
+                    op = bool_ops[node.op]()
+                    return py.BoolOp(
+                        op, [self.translate(left), self.translate(right)], **pos(node)
+                    )
+
+                else:
+                    debug(node)
+                    raise NotImplementedError(node.__class__.__name__)
 
             # TODO: check this:
             #         if node.op == ".":
@@ -242,16 +266,6 @@ class Translator:
             #                 )
             #             else:
             #                 return py.Str(pattern % (), **pos(node))
-            #         if node.op in bool_ops:
-            #             op = bool_ops[node.op](**pos(node))
-            #             return py.BoolOp(
-            #                 op, [from_phpast(node.left), from_phpast(node.right)], **pos(node)
-            #             )
-            #         if node.op in cmp_ops:
-            #             op = cmp_ops[node.op](**pos(node))
-            #             return py.Compare(
-            #                 from_phpast(node.left), [op], [from_phpast(node.right)], **pos(node)
-            #             )
             #         op = binary_ops.get(node.op)
             #         if node.op == "instanceof":
             #             return py.Call(
@@ -276,13 +290,16 @@ class Translator:
                     **pos(node),
                 )
 
+            case Expr_PostInc() | Expr_PreDec() | Expr_PreInc() | Expr_PostDec():
+                return py.Str(f"TODO: {node.__class__.__name__}")
+
             # Casts
             case Expr_Cast(expr):
                 # TODO: proper cast
 
                 cast_name = {
-                    Expr_Cast_Object: "TODO",
-                    Expr_Cast_Array: "TODO",
+                    Expr_Cast_Object: "TODO: cast object",
+                    Expr_Cast_Array: "TODO: cast array",
                     Expr_Cast_Bool: "bool",
                     Expr_Cast_Double: "float",
                     Expr_Cast_Int: "int",
