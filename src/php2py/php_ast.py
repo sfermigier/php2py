@@ -200,7 +200,7 @@ class Expr_BinaryOp_BooleanOr(Expr_BinaryOp):
 
 @frozen
 class Expr_BinaryOp_Coalesce(Expr_BinaryOp):
-    pass
+    op = "??"
 
 
 @frozen
@@ -951,9 +951,9 @@ class Stmt_Use(Stmt):
 
 @frozen
 class Stmt_UseUse(Stmt):
+    name: Name
     alias: Identifier | None
     type: int
-    name: Name
 
 
 @frozen

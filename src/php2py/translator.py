@@ -42,6 +42,7 @@ from php2py.php_ast import (
     Expr_Ternary,
     Expr_UnaryOp,
     Expr_Variable,
+    Expr_Yield,
     Name,
     Node,
     Scalar_DNumber,
@@ -49,6 +50,7 @@ from php2py.php_ast import (
     Scalar_String,
     Stmt_Break,
     Stmt_Class,
+    Stmt_ClassConst,
     Stmt_ClassMethod,
     Stmt_Continue,
     Stmt_Echo,
@@ -62,10 +64,12 @@ from php2py.php_ast import (
     Stmt_Nop,
     Stmt_Property,
     Stmt_Return,
+    Stmt_Static,
     Stmt_Throw,
     Stmt_TryCatch,
     Stmt_Unset,
     Stmt_Use,
+    Stmt_UseUse,
     Stmt_While,
 )
 
@@ -144,8 +148,10 @@ class Translator:
                     return self.translate_other(node)
 
             case _:
-                debug(node)
-                assert False
+                # TODO
+                return py.parse("None")
+                # debug(node)
+                # assert False
 
     def translate_other(self, node):
         match node:
@@ -193,7 +199,9 @@ class Translator:
                 elif name.lower() == "null":
                     name = "None"
                 else:
-                    raise NotImplementedError(str(name))
+                    # TODO
+                    name = "None"
+                    # raise NotImplementedError(str(name))
 
                 return py.Name(name, py.Load())
 
@@ -247,6 +255,8 @@ class Translator:
                     )
 
                 else:
+                    # TODO
+                    return py.parse("None")
                     debug(node)
                     raise NotImplementedError(node.__class__.__name__)
 
@@ -298,8 +308,8 @@ class Translator:
                 # TODO: proper cast
 
                 cast_name = {
-                    Expr_Cast_Object: "TODO: cast object",
-                    Expr_Cast_Array: "TODO: cast array",
+                    Expr_Cast_Object: "TODO_cast_object",
+                    Expr_Cast_Array: "TODO_cast_array",
                     Expr_Cast_Bool: "bool",
                     Expr_Cast_Double: "float",
                     Expr_Cast_Int: "int",
@@ -424,6 +434,7 @@ class Translator:
                 return result
 
             case Expr_Isset(vars):
+                debug(vars)
                 assert len(vars) == 1
                 var = vars[0]
                 match var:
@@ -475,7 +486,10 @@ class Translator:
                 )
 
             case Expr_FuncCall(name=name, args=args):
-                name = name._json["parts"][0]
+                if hasattr(name, "name"):
+                    name = name.name
+                else:
+                    name = name._json["parts"][0]
                 func = py.Name(name, py.Load())
 
                 # if isinstance(name, str):
@@ -528,7 +542,7 @@ class Translator:
                     )
                 else:
                     # TODO
-                    return py.Str("TODO: ")
+                    return py.Name("TODO")
                     # return py.Subscript(
                     #     value=self.translate(var),
                     #     slice=py.Index(self.translate(dim)),
@@ -546,6 +560,14 @@ class Translator:
                 )
 
             case Expr_Closure():
+                # TODO
+                return py.parse("None", mode="eval")
+                debug(node, node._json)
+                raise NotImplementedError(node.__class__.__name__)
+
+            case Expr_Yield():
+                # TODO
+                return py.parse("None", mode="eval")
                 debug(node, node._json)
                 raise NotImplementedError(node.__class__.__name__)
 
@@ -577,6 +599,10 @@ class Translator:
             case Stmt_Use(uses=uses):
                 return self.translate(uses)
 
+            case Stmt_UseUse():
+                # TODO
+                return py.Pass
+
             case Stmt_InlineHTML(value):
                 args = [py.Str(value)]
                 return py.Call(
@@ -603,8 +629,10 @@ class Translator:
                 for elseif in reversed(node.elseifs):
                     orelse = [
                         py.If(
-                            test=self.translate(elseif.expr),
-                            body=[to_stmt(self.translate(stmt)) for stmt in stmts],
+                            test=self.translate(elseif.cond),
+                            body=[
+                                to_stmt(self.translate(stmt)) for stmt in elseif.stmts
+                            ],
                             orelse=orelse,
                         )
                     ]
@@ -750,6 +778,10 @@ class Translator:
                     decorator_list=[],
                     **pos(node),
                 )
+
+            case Stmt_ClassConst():
+                # TODO
+                return py.Pass
 
             case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
                 args = []
@@ -909,16 +941,25 @@ class Translator:
             #     )
 
             case Stmt_TryCatch(stmts=stmts, catches=catches, finally_=finally_):
+                # handlers = [
+                #     py.ExceptHandler(
+                #         py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),
+                #         store(self.translate(catches.var)),
+                #         [to_stmt(self.translate(node)) for node in catches],
+                #     )
+                #     for catch in node.catches
+                # ]
+                handlers = [
+                    py.ExceptHandler(
+                        py.Name("Exception", py.Load()),
+                        None,
+                        [py.Pass()],
+                    )
+                ]
+
                 return py.Try(
                     body=[to_stmt(self.translate(node)) for node in stmts],
-                    handlers=[],
-                    #     py.ExceptHandler(
-                    #         py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),
-                    #         store(self.translate(catches.var)),
-                    #         [to_stmt(self.translate(node)) for node in catches],
-                    #     )
-                    #     for catch in node.catches
-                    # ],
+                    handlers=handlers,
                     orelse=[],
                     finalbody=[],
                     **pos(node),
@@ -926,6 +967,10 @@ class Translator:
 
             case Stmt_Throw(expr):
                 return py.Raise(exc=self.translate(expr), cause=None, **pos(node))
+
+            case Stmt_Static():
+                # TODO
+                return py.Pass()
 
             case _:
                 debug(node)
