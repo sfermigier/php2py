@@ -1,4 +1,8 @@
 import ast
+import shlex
+import subprocess
+import sys
+import tempfile
 import traceback
 from ast import dump, unparse
 
@@ -37,29 +41,47 @@ def ast_eq(node1: ast.AST | list[ast.AST], node2: ast.AST | list[ast.AST]) -> bo
         return node1 == node2
 
 
+def dump_php_ast(ast):
+    raw = repr(ast)
+    with tempfile.NamedTemporaryFile("w+", suffix=".py") as fd:
+        fd.write(raw)
+        fd.flush()
+
+        cmd_line = f"black {fd.name}"
+        args = shlex.split(cmd_line)
+        with subprocess.Popen(
+            args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        ) as p:
+            p.wait()
+
+        fd.seek(0)
+        return print(fd.read())
+
+
 def check_compiles(input, expected):
     php_ast = parse(input)
     try:
         py_ast = translate(input)
     except:
         rich.print("[red]Error while translating[/red]")
-        debug(php_ast)
-        # traceback.print_exc()
+        print("php_ast:")
+        dump_php_ast(php_ast)
         raise
 
     try:
         output = unparse(py_ast)
     except:
         rich.print("[red]Error while translating[/red]")
-        debug(php_ast)
+        print("php_ast:")
+        dump_php_ast(php_ast)
         print("py_ast=", dump(py_ast, indent=2))
-        # traceback.print_exc()
         raise
 
     output = output.strip()
 
     if expected != output:
-        debug(php_ast)
+        print("php_ast:")
+        dump_php_ast(php_ast)
         print("py_ast=", dump(py_ast, indent=2))
         debug(output)
 

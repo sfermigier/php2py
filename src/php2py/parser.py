@@ -3,10 +3,6 @@ import shlex
 import subprocess
 import tempfile
 
-from devtools import debug
-
-from php2py.php_ast import Expr_ConstFetch
-
 from . import php_ast
 
 
@@ -66,9 +62,6 @@ def make_ast(
                 args[attr] = make_ast(value)
             case _:
                 args[attr] = value
-
-    # if node_class == Expr_ConstFetch:
-    #     debug(json_node)
 
     node = node_class(**args)
 

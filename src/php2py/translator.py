@@ -189,7 +189,7 @@ class Translator:
                 elif name.lower() == "null":
                     name = "None"
                 else:
-                    raise NotImplemented(str(name))
+                    raise NotImplementedError(str(name))
 
                 return py.Name(name, py.Load())
 
@@ -371,7 +371,6 @@ class Translator:
                 #             **pos(node),
                 #         )
                 #     )
-
                 return py.Assign(
                     [store(self.translate(var))],
                     self.translate(expr),
@@ -401,9 +400,11 @@ class Translator:
                 #         [self.translate(node.node), self.translate(node.name)],
                 #         [],
                 #     )
-                return py.Attribute(
+                result = py.Attribute(
                     value=self.translate(var), attr=name, ctx=py.Load(), **pos(node)
                 )
+                assert isinstance(result.attr, str)
+                return result
 
             case Expr_Isset(vars):
                 assert len(vars) == 1
@@ -488,9 +489,17 @@ class Translator:
                 func = py.Attribute(value=self.translate(var), attr=name, ctx=py.Load())
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
-            case Expr_StaticCall():
-                # TODO
-                return
+            case Expr_StaticCall(class_, name, args):
+                class_name = class_._json["parts"][0]
+                if class_name == "self":
+                    class_name = "cls"
+                args, kwargs = self.build_args(args)
+                func = py.Attribute(
+                    value=py.Name(class_name, py.Load()), attr=name.name, ctx=py.Load()
+                )
+                assert isinstance(func.attr, str)
+
+                return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_ArrayDimFetch(var=var, dim=dim):
                 if dim:
@@ -511,17 +520,17 @@ class Translator:
                     # )
 
             case Expr_ClassConstFetch(name=name, class_=class_):
+                class_name = class_._json["parts"][0]
                 return py.Attribute(
-                    value=py.Name(id=class_, ctx=py.Load()),
+                    value=py.Name(id=class_name, ctx=py.Load()),
                     attr=name.name,
                     ctx=py.Load(),
                     **pos(node),
                 )
 
             case Expr_Closure():
-                return
-                # debug(node)
-                # debug(node._json)
+                debug(node, node._json)
+                raise NotImplementedError(node.__class__.__name__)
 
             case _:
                 debug(node)
@@ -536,9 +545,9 @@ class Translator:
 
             case Stmt_Echo(exprs):
                 return py.Call(
-                    py.Name("echo", py.Load()),
-                    [self.translate(n) for n in exprs],
-                    [],
+                    func=py.Name("echo", py.Load()),
+                    args=[self.translate(n) for n in exprs],
+                    keywords=[],
                     **pos(node),
                 )
 
@@ -614,15 +623,14 @@ class Translator:
 
             case Stmt_Foreach(expr=expr, valueVar=value_var, stmts=stmts):
                 if node.keyVar is None:
-                    target = py.Name(value_var.name, py.Store(**pos(node)), **pos(node))
+                    target = py.Name(value_var.name, py.Store())
                 else:
                     target = py.Tuple(
                         [
-                            py.Name(node.keyVar.name[1:], py.Store(**pos(node))),
-                            py.Name(node.valueVar.name[1:], py.Store(**pos(node))),
+                            py.Name(node.keyVar.name[1:], py.Store()),
+                            py.Name(node.valueVar.name[1:], py.Store()),
                         ],
-                        py.Store(**pos(node)),
-                        **pos(node),
+                        py.Store(),
                     )
 
                 return py.For(
@@ -692,25 +700,6 @@ class Translator:
                 )
                 return py.FunctionDef(name.name, arguments, body, [], **pos(node))
 
-            # case Stmt_StaticMethodCall():
-            #     class_ = node.class_
-            #     if class_ == "self":
-            #         class_ = "cls"
-            #     args, kwargs = build_args(node.params)
-            #     return py.Call(
-            #         py.Attribute(
-            #             py.Name(class_, py.Load(**pos(node)), **pos(node)),
-            #             node.name,
-            #             py.Load(**pos(node)),
-            #             **pos(node),
-            #         ),
-            #         args,
-            #         kwargs,
-            #         None,
-            #         None,
-            #         **pos(node),
-            #     )
-
             case Stmt_Return(expr):
                 if expr is None:
                     return py.Return(None)
@@ -734,7 +723,7 @@ class Translator:
                     ):
                         stmt.name = "__init__"
                 if not body:
-                    body = [py.Pass(**pos(node))]
+                    body = [py.Pass()]
 
                 return py.ClassDef(
                     name=name,
@@ -847,52 +836,25 @@ class Translator:
             #     )
 
             #     if isinstance(node, (php.ClassConstants, php.ClassVariables)):
-            case Stmt_ClassConst(consts=consts):
-                _ignore = Stmt_ClassConst(
-                    flags=0,
-                    attrGroups=[],
-                    consts=[
-                        Const(
-                            namespacedName=None,
-                            name=Identifier(name="LAUNCH_PADS"),
-                            value=Expr_Array(
-                                items=[
-                                    Expr_ArrayItem(
-                                        byRef=False,
-                                        unpack=False,
-                                        key=None,
-                                        value=Scalar_String(value="p1"),
-                                    ),
-                                    Expr_ArrayItem(
-                                        byRef=False,
-                                        unpack=False,
-                                        key=None,
-                                        value=Scalar_String(value="p2"),
-                                    ),
-                                ]
-                            ),
-                        )
-                    ],
-                )
-
-                body = []
-                for const in consts:
-                    pass
-
-                msg = "only one class-level assignment supported per line"
-                assert len(node.nodes) == 1, msg
-
-                if isinstance(node.nodes[0], php.ClassConstant):
-                    name = php.Constant(node.nodes[0].name, lineno=node.lineno)
-                else:
-                    name = php.Variable(node.nodes[0].name, lineno=node.lineno)
-                initial = node.nodes[0].initial
-                if initial is None:
-                    initial = php.Constant("None", lineno=node.lineno)
-
-                return py.Assign(
-                    [store(self.translate(name))], self.translate(initial), **pos(node)
-                )
+            # case Stmt_ClassConst(consts=consts):
+            #     body = []
+            #     for const in consts:
+            #         pass
+            #
+            #     msg = "only one class-level assignment supported per line"
+            #     assert len(node.nodes) == 1, msg
+            #
+            #     if isinstance(node.nodes[0], php.ClassConstant):
+            #         name = php.Constant(node.nodes[0].name, lineno=node.lineno)
+            #     else:
+            #         name = php.Variable(node.nodes[0].name, lineno=node.lineno)
+            #     initial = node.nodes[0].initial
+            #     if initial is None:
+            #         initial = php.Constant("None", lineno=node.lineno)
+            #
+            #     return py.Assign(
+            #         [store(self.translate(name))], self.translate(initial), **pos(node)
+            #     )
 
             case Stmt_Property(props=props):
                 # if isinstance(node.name, (php.Variable, php.BinaryOp)):
@@ -963,10 +925,10 @@ class Translator:
                     args.append(self.translate(value))
 
                 case Arg(name=name, value=value):
-                    kwargs.append(py.keyword(name, self.translate(value)))
+                    kwargs.append(py.keyword(arg=name, value=self.translate(value)))
 
                 case _:
-                    raise NotImplemented("Should not happen")
+                    raise NotImplementedError("Should not happen")
 
         return args, kwargs
 
@@ -993,6 +955,7 @@ def pos(node: Node) -> dict:
 
 
 def store(name):
+    assert name
     name.ctx = py.Store(**pos(name))
     return name
 
