@@ -47,7 +47,7 @@ flake8-super-call = "*"
 flake8-tidy-imports = "*"
 mastool = "*"
 mccabe = "*"
-mypy = "*"
+mypy = {git = "https://github.com/python/mypy.git"}
 
 # Formatting
 isort = "*"

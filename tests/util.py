@@ -1,16 +1,13 @@
 import ast
 import shlex
 import subprocess
-import sys
 import tempfile
-import traceback
 from ast import dump, unparse
 
 import rich
 from devtools import debug
 
 from php2py.parser import parse
-from php2py.php_ast import Stmt_InlineHTML, Stmt_Nop
 from php2py.translator import Translator
 
 

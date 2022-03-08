@@ -17,7 +17,7 @@ class Node:
 
     @property
     def _lineno(self):
-        return self._attributes["line"]
+        return self._json["attributes"]["startLine"]
 
     @property
     def _col_offset(self):
@@ -787,8 +787,8 @@ class Stmt_Finally(Stmt):
 
 @frozen
 class Stmt_For(Stmt):
-    loop: list[Expr] | list[Stmt]
     init: list[Expr] | list[Stmt]
+    loop: list[Expr] | list[Stmt]
     cond: list[Expr] | list[Stmt]
     stmts: list[Stmt]
 
@@ -878,8 +878,8 @@ class Stmt_Property(Stmt):
 
 @frozen
 class Stmt_PropertyProperty(Stmt):
-    default: Expr | None | Scalar_LNumber | Scalar_String
     name: VarLikeIdentifier
+    default: Expr | None | Scalar_LNumber | Scalar_String
 
 
 @frozen

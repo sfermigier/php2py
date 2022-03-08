@@ -26,18 +26,17 @@ def make_ast(
     json_node: list | dict | str | int | None,
 ) -> php_ast.Node | list[php_ast.Node] | None:
     if isinstance(json_node, list):
-        node = []
         return [make_ast(subnode) for subnode in json_node]
 
     if isinstance(json_node, str):
-        return
+        return None
 
     if json_node is None:
-        return
+        return None
 
     assert isinstance(json_node, dict)
     if "nodeType" not in json_node:
-        return
+        return None
 
     node_type = json_node["nodeType"]
     node_class = getattr(php_ast, node_type)

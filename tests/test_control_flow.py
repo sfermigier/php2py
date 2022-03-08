@@ -86,3 +86,13 @@ def test_foreach():
     ?>"""
     expected = "for bar in foo:\n" "    echo(bar)\n" "pass"
     check_compiles(input, expected)
+
+
+def test_for():
+    input = r"""<?php
+        for ($i = 0; $i < 10; $i++) {
+            echo $i;
+        }
+    ?>"""
+    expected = ""
+    check_compiles(input, expected)

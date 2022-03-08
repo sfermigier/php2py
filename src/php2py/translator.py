@@ -31,6 +31,7 @@ from php2py.php_ast import (
     Expr_Exit,
     Expr_FuncCall,
     Expr_Isset,
+    Expr_List,
     Expr_MethodCall,
     Expr_New,
     Expr_PostDec,
@@ -168,13 +169,13 @@ class Translator:
 
     def translate_scalar(self, node):
         match node:
-            case Scalar_String(value):
+            case Scalar_String(value=value):
                 return py.Str(value)
 
-            case Scalar_LNumber(value):
+            case Scalar_LNumber(value=value):
                 return py.Num(value)
 
-            case Scalar_DNumber(value):
+            case Scalar_DNumber(value=value):
                 return py.Num(value)
 
             case _:
@@ -183,7 +184,7 @@ class Translator:
 
     def translate_expr(self, node):
         match node:
-            case Expr_Variable(name):
+            case Expr_Variable(name=name):
                 if name == "this":
                     name = "self"
                 return py.Name(name, py.Load())
@@ -227,14 +228,14 @@ class Translator:
             #
             # Unary ops
             #
-            case Expr_UnaryOp(expr):
+            case Expr_UnaryOp(expr=expr):
                 op = unary_ops[node.op]()
                 return py.UnaryOp(op, self.translate(expr))
 
             #
             # Binary ops
             #
-            case Expr_BinaryOp(left, right):
+            case Expr_BinaryOp(left=left, right=right):
                 if node.op in binary_ops:
                     op = binary_ops[node.op]()
                     return py.BinOp(self.translate(left), op, self.translate(right))
@@ -565,11 +566,11 @@ class Translator:
                 debug(node, node._json)
                 raise NotImplementedError(node.__class__.__name__)
 
-            case Expr_Yield():
-                # TODO
-                return py.parse("None", mode="eval")
-                debug(node, node._json)
-                raise NotImplementedError(node.__class__.__name__)
+            case Expr_List(items):
+                return py.List(
+                    elts=[self.translate(item) for item in items],
+                    ctx=py.Store(),
+                )
 
             case _:
                 debug(node)
@@ -644,27 +645,39 @@ class Translator:
                     **pos(node),
                 )
 
-            case Stmt_For():
+            case Stmt_For(init, loop, cond, stmts):
                 assert (
-                    node.test is None or len(node.test) == 1
+                    cond is None or len(cond) == 1
                 ), "only a single test is supported in for-loops"
 
-                return from_phpast(
-                    php.Block(
-                        (node.start or [])
-                        + [
-                            php.While(
-                                node.test[0] if node.test else 1,
-                                php.Block(
-                                    deblock(node.node) + (node.count or []),
-                                    lineno=node.lineno,
-                                ),
-                                lineno=node.lineno,
-                            )
-                        ],
-                        lineno=node.lineno,
-                    )
-                )
+                test = self.translate(cond[0])
+                body = [
+                    to_stmt(n) for n in self.translate(stmts) + [self.translate(loop)]
+                ]
+                return self.translate(init) + [
+                    py.While(
+                        test=test,
+                        body=body,
+                        orelse=[],
+                    ),
+                ]
+
+                # return from_phpast(
+                #     php.Block(
+                #         (node.start or [])
+                #         + [
+                #             php.While(
+                #                 node.test[0] if node.test else 1,
+                #                 php.Block(
+                #                     deblock(node.node) + (node.count or []),
+                #                     lineno=node.lineno,
+                #                 ),
+                #                 lineno=node.lineno,
+                #             )
+                #         ],
+                #         lineno=node.lineno,
+                #     )
+                # )
 
             case Stmt_Foreach(expr=expr, valueVar=value_var, stmts=stmts):
                 if node.keyVar is None:
@@ -750,6 +763,13 @@ class Translator:
                     return py.Return(None)
                 else:
                     return py.Return(self.translate(expr))
+
+            case Expr_Yield(key=key, value=value):
+                # TODO: what do we do with 'key' ?
+                if value is None:
+                    return py.Yield(None)
+                else:
+                    return py.Yield(self.translate(value))
 
             #
             # Class definitions
@@ -906,40 +926,28 @@ class Translator:
             #     )
 
             case Stmt_Property(props=props):
-                # if isinstance(node.name, (php.Variable, php.BinaryOp)):
-                #     return py.Call(
-                #         func=py.Name("getattr", py.Load(**pos(node)), **pos(node)),
-                #         args=[self.translate(node.node), self.translate(node.name)],
-                #         keywords=[],
-                #         **pos(node),
-                #     )
-                assert False
-                return py.Attribute(
-                    self.translate(node.node),
-                    node.name,
-                    py.Load(),
-                    **pos(node),
-                )
+                # TODO
+                return py.Pass()
+                # # if isinstance(node.name, (php.Variable, php.BinaryOp)):
+                # #     return py.Call(
+                # #         func=py.Name("getattr", py.Load(**pos(node)), **pos(node)),
+                # #         args=[self.translate(node.node), self.translate(node.name)],
+                # #         keywords=[],
+                # #         **pos(node),
+                # #     )
+                #
+                # assert len(props) == 1
+                # prop = props[0]
+                # return py.Attribute(
+                #     self.translate(node.node),
+                #     node.name,
+                #     py.Load(),
+                #     **pos(node),
+                # )
 
             #
             # Exceptions
             #
-            # if isinstance(node, php.Try):
-            #     return py.TryExcept(
-            #         list(map(to_stmt, list(map(from_phpast, node.nodes)))),
-            #         [
-            #             py.ExceptHandler(
-            #                 py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),
-            #                 store(from_phpast(catch.var)),
-            #                 list(map(to_stmt, list(map(from_phpast, catch.nodes)))),
-            #                 **pos(node),
-            #             )
-            #             for catch in node.catches
-            #         ],
-            #         [],
-            #         **pos(node),
-            #     )
-
             case Stmt_TryCatch(stmts=stmts, catches=catches, finally_=finally_):
                 # handlers = [
                 #     py.ExceptHandler(
