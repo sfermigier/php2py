@@ -1,4 +1,4 @@
-from util import check_compiles
+from .util import check_compiles
 
 
 def test_assign():

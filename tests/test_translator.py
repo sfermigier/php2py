@@ -1,7 +1,7 @@
-from util import check_compiles
-
 from php2py.parser import parse
 from php2py.php_ast import Stmt_InlineHTML, Stmt_Nop
+
+from .util import check_compiles
 
 
 def test_inline_html():

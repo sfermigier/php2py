@@ -3,9 +3,9 @@
 name = "php2py"
 version = "0.1.0"
 homepage = "https://github.com/sfermigier/php2py"
-description = "Top-level package for php2py."
+description = "PHP to Python transpiler."
 authors = ["Abilian SAS <sf@abilian.com>"]
-readme = "README.rst"
+readme = "README.md"
 classifiers=[
     'Development Status :: 2 - Pre-Alpha',
     'Intended Audience :: Developers',
@@ -20,56 +20,34 @@ packages = [
 ]
 
 
-
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = ">=3.9,<4"
 astor = "^0.8.1"
+attrs = "^23.1.0"
+
+# For debugging. Remove later.
+icecream = "^2.1.2"
+rich = "^11.2.0"
+devtools = "^0.8.0"
+astpretty = "^2.1.0"
 
 
 [tool.poetry.dev-dependencies]
-## Standard cruft
+abilian-devtools = "*"
 
-# Cruft (project templates management)
-cruft = "*"
-toml = "*"
-
-# Testing
-pytest = "*"
-pytest-cov = "*"
-coveralls = "*"
-
-# Linting
-flake8 = "*"
-flake8-bugbear = "*"
-flake8-comprehensions = "*"
-flake8-mutable = "*"
-flake8-pytest = "*"
-flake8-super-call = "*"
-flake8-tidy-imports = "*"
-mastool = "*"
-mccabe = "*"
-mypy = {git = "https://github.com/python/mypy.git"}
-
-# Formatting
-isort = "*"
-black = "*"
-
-# Other tools
-profilehooks = "*"
-pre-commit = "*"
-safety = "*"
-
-# Needed for some reason
-pyyaml = "*"
-
-# Doc
 restructuredtext_lint = "*"
 
-## /standard cruft
-rich = "^11.2.0"
-devtools = "^0.8.0"
-icecream = "^2.1.2"
-astpretty = "^2.1.0"
+
+[tool.ruff]
+extend-ignore = [
+    "S101", # Use of 'assert'
+    "E501", # Line too long
+    # TODO: fix these
+    "F841", # Local variable `key` is assigned to but never used
+]
+extend-exclude = [
+    ".nox"
+]
 
 
 [tool.isort]
