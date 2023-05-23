@@ -2,14 +2,9 @@
 
 [![image](https://img.shields.io/pypi/v/php2py.svg)](https://pypi.python.org/pypi/php2py)
 
-[![image](https://img.shields.io/travis/sfermigier/php2py.svg)](https://travis-ci.com/sfermigier/php2py)
-
-[![Documentation Status](https://readthedocs.org/projects/php2py/badge/?version=latest)](https://php2py.readthedocs.io/en/latest/?version=latest)
-
 PHP to Python transpiler.
 
 -   Free software: GNU General Public License v3
--   Documentation: <https://php2py.readthedocs.io> (nope!).
 
 ## Use cases
 
@@ -61,6 +56,8 @@ pipx install php2py
 I don't have time to work on this project ATM, but I'm happy to review pull requests.
 
 If you are a student (or a group of students) in a computer science or engineering program, and you want to work on this, please contact me (<mailto:sf@abilian.com>).
+
+If you think this project can be useful for your company, you can support the development effort through a sponsorship via my company, Abilian: <https://abilian.com/>.
 
 ## Credits
 
