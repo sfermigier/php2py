@@ -4,7 +4,6 @@ import subprocess
 import tempfile
 from ast import unparse
 
-import astpretty
 import rich
 from devtools import debug
 

@@ -1,12 +1,1 @@
-{
-    "name": "abilian/php2py",
-    "authors": [
-        {
-            "name": "Stefane Fermigier",
-            "email": "sf@abilian.com"
-        }
-    ],
-    "require": {
-        "nikic/php-parser": "^4.13"
-    }
-}
+src/php2py/etc/composer.json

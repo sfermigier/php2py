@@ -7,6 +7,9 @@ PKG=php2py
 
 all: test lint
 
+help:
+	adt help-make
+
 #
 # Setup
 #
@@ -39,21 +42,29 @@ test:
 test-randomly:
 	@echo "--> Running Python tests in random order"
 
-clean-test: ## remove test and coverage artifacts
+## remove test and coverage artifacts
+clean-test:
 	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint/flake8: ## check style with flake8
+## check style
+lint:
+	ruff src tests
+	make lint/flake8
+	make lint/black
+
+## check style with flake8
+lint/flake8:
 	flake8 src tests
 
-lint/black: ## check style with black
+## check style with black
+lint/black:
 	black --target-version py310 --check src tests
 
-lint: lint/flake8 lint/black ## check style
-
-test: ## run tests quickly with the default Python
+## run tests quickly with the default Python
+test:
 	pytest
 	@echo ""
 
@@ -140,6 +151,7 @@ doc-pdf:
 	sphinx-build -W -b latex docs/ docs/_build/latex
 	make -C docs/_build/latex all-pdf
 
+## clean up
 clean:
 	rm -f **/*.pyc
 	find . -type d -empty -delete
@@ -147,19 +159,14 @@ clean:
 		.pytest_cache .pytest .DS_Store  docs/_build docs/cache docs/tmp \
 		dist build pip-wheel-metadata junit-*.xml htmlcov coverage.xml
 
+## clean up harder
 tidy: clean
-	rm -rf .tox .nox .dox .travis-solo
-	rm -rf node_modules
-	rm -rf instance
-
-update-pot:
-	# _n => ngettext, _l => lazy_gettext
-	python setup.py extract_messages update_catalog compile_catalog
+	rm -rf .tox .nox
+	rm -rf vendor
 
 update-deps:
 	pip install -U pip setuptools wheel
 	poetry update
-	poetry export -o requirements.txt
 
 publish: clean
 	git push --tags

@@ -2,16 +2,22 @@ import json
 import shlex
 import subprocess
 import tempfile
+from pathlib import Path
 
 from . import php_ast
 
 
-def parse(source_code: str):
+def parse(source_code: str, php_parse: str | Path = ""):
+    if not php_parse:
+        php_parse = "vendor/nikic/php-parser/bin/php-parse"
+    php_parse = Path(php_parse)
+    assert php_parse.exists()
+
     with tempfile.NamedTemporaryFile("w", suffix=".php", delete=False) as source_file:
         source_file.write(source_code)
         source_file.flush()
 
-        cmd_line = f"vendor/nikic/php-parser/bin/php-parse -j {source_file.name}"
+        cmd_line = f"{php_parse} -j {source_file.name}"
         args = shlex.split(cmd_line)
         with subprocess.Popen(
             args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
