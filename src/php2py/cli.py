@@ -13,7 +13,8 @@ def cli():
     convert_parser = subparsers.add_parser(
         "convert", help="Convert (compile) a PHP file to Python"
     )
-    convert_parser.add_argument("file")
+    convert_parser.add_argument("files", nargs="+", help="PHP files to convert")
+    convert_parser.add_argument("--ignore-errors", action="store_true")
     convert_parser.set_defaults(func=run_convert)
 
     args = parser.parse_args()
@@ -27,7 +28,7 @@ def cli():
 def run_convert(args):
     from php2py.main import main
 
-    main(args.file)
+    main(args.files, ignore_errors=args.ignore_errors)
 
 
 def run_update(args):

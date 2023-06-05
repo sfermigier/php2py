@@ -1,9 +1,13 @@
 #!/usr/bin/env python
-
+import ast
 import ast as py
+import sys
+from dataclasses import dataclass
+from types import NoneType
 
 from devtools import debug
 
+from php2py.ast_utils import print_ast
 from php2py.php_ast import (
     Arg,
     Expr_Array,
@@ -28,6 +32,7 @@ from php2py.php_ast import (
     Expr_Empty,
     Expr_Exit,
     Expr_FuncCall,
+    Expr_Instanceof,
     Expr_Isset,
     Expr_List,
     Expr_MethodCall,
@@ -42,8 +47,11 @@ from php2py.php_ast import (
     Expr_UnaryOp,
     Expr_Variable,
     Expr_Yield,
+    Name,
     Node,
     Scalar_DNumber,
+    Scalar_Encapsed,
+    Scalar_EncapsedStringPart,
     Scalar_LNumber,
     Scalar_String,
     Stmt_Break,
@@ -58,11 +66,13 @@ from php2py.php_ast import (
     Stmt_Function,
     Stmt_If,
     Stmt_InlineHTML,
+    Stmt_Interface,
     Stmt_Namespace,
     Stmt_Nop,
     Stmt_Property,
     Stmt_Return,
     Stmt_Static,
+    Stmt_Switch,
     Stmt_Throw,
     Stmt_TryCatch,
     Stmt_Unset,
@@ -120,7 +130,10 @@ compare_ops = {
 # }
 
 
+@dataclass
 class Translator:
+    in_class: bool = False
+
     def translate_root(self, root_node):
         return py.Module(body=[self.translate(n) for n in root_node], type_ignores=[])
 
@@ -142,8 +155,12 @@ class Translator:
                 if node_type.startswith("Stmt_"):
                     return self.translate_stmt(node)
 
-                else:
-                    return self.translate_other(node)
+                if node_type == "Name":
+                    parts = node._json["parts"]
+                    name = parts[0]
+                    return py.Name(name, py.Load())
+
+                return self.translate_other(node)
 
             case _:
                 # TODO
@@ -153,7 +170,7 @@ class Translator:
 
     def translate_other(self, node):
         debug(node)
-        assert False, "Should not happen"
+        raise NotImplementedError()
 
     def translate_scalar(self, node):
         match node:
@@ -166,9 +183,26 @@ class Translator:
             case Scalar_DNumber(value=value):
                 return py.Num(value)
 
+            case Scalar_Encapsed():
+                return self.translate_encapsed(node)
+
             case _:
                 debug(node)
                 raise NotImplementedError()
+
+    def translate_encapsed(self, node):
+        parts = node.parts
+        result = []
+        for part in parts:
+            match part:
+                case Scalar_EncapsedStringPart(value=value):
+                    result.append(value)
+                case Expr_Variable(name=name):
+                    result.append("{name}")
+                case _:
+                    debug(part)
+                    raise NotImplementedError()
+        return py.Str("".join(result))
 
     def translate_expr(self, node):
         match node:
@@ -188,9 +222,7 @@ class Translator:
                 elif name.lower() == "null":
                     name = "None"
                 else:
-                    # TODO
-                    name = "None"
-                    # raise NotImplementedError(str(name))
+                    raise NotImplementedError(str(name))
 
                 return py.Name(name, py.Load())
 
@@ -245,7 +277,7 @@ class Translator:
 
                 else:
                     # TODO
-                    return py.parse("None")
+                    # return py.parse("None")
                     debug(node)
                     raise NotImplementedError(node.__class__.__name__)
 
@@ -309,7 +341,6 @@ class Translator:
                     func=py.Name(cast_name, py.Load()),
                     args=[self.translate(expr)],
                     keywords=[],
-                    **pos(node),
                 )
 
             #
@@ -530,7 +561,7 @@ class Translator:
 
             case Expr_Closure():
                 # TODO
-                return py.parse("None", mode="eval")
+                # return py.parse("None", mode="eval")
                 debug(node, node._json)
                 raise NotImplementedError(node.__class__.__name__)
 
@@ -538,6 +569,13 @@ class Translator:
                 return py.List(
                     elts=[self.translate(item) for item in items],
                     ctx=py.Store(),
+                )
+
+            case Expr_Instanceof(expr, class_):
+                return py.Call(
+                    func=py.Name("isinstance", py.Load()),
+                    args=[self.translate(expr), self.translate(class_)],
+                    keywords=[],
                 )
 
             case _:
@@ -704,6 +742,8 @@ class Translator:
             #
             case Stmt_Function(name=name, params=params, stmts=stmts):
                 args = []
+                if self.in_class:
+                    args.append(py.Name("self", py.Param()))
                 defaults = []
                 for param in params:
                     param_name = param.var.name
@@ -742,11 +782,18 @@ class Translator:
             #
             # Class definitions
             #
-            case Stmt_Class(name=name, stmts=stmts):
+            case Stmt_Class(name=name, stmts=stmts, extends=extends):
+                self.in_class = True
                 name = name.name
+
+                if extends is None:
+                    extends = []
+                if isinstance(extends, Name):
+                    extends = [extends]
                 bases = []
-                # extends = node.extends or "object"
-                # bases.append(py.Name(extends, py.Load(**pos(node)), **pos(node)))
+                for base_class in extends:
+                    base_class_name = base_class._json["parts"][0]
+                    bases.append(py.Name(base_class_name, py.Load()))
 
                 body = [to_stmt(self.translate(stmt)) for stmt in stmts]
                 for stmt in body:
@@ -758,13 +805,51 @@ class Translator:
                 if not body:
                     body = [py.Pass()]
 
+                self.in_class = False
                 return py.ClassDef(
                     name=name,
                     bases=bases,
                     keywords=[],
                     body=body,
                     decorator_list=[],
-                    **pos(node),
+                )
+
+            case Stmt_Interface(name=name, stmts=stmts, extends=extends):
+                # Example node: (
+                #     Stmt_Interface(attrGroups=[], extends=[], namespacedName=None, stmts=[],
+                #     name=Identifier(name='CredentialsInterface'))
+                # )
+                # debug(node)
+                self.in_class = True
+
+                name = name.name
+                if extends is None:
+                    extends = []
+                if isinstance(extends, Name):
+                    extends = [extends]
+                bases = []
+                for base_class in extends:
+                    debug(base_class)
+                    base_class_name = base_class._json["parts"][0]
+                    bases.append(py.Name(base_class_name, py.Load()))
+
+                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
+                for stmt in body:
+                    if isinstance(stmt, py.FunctionDef) and stmt.name in (
+                        name,
+                        "__construct",
+                    ):
+                        stmt.name = "__init__"
+                if not body:
+                    body = [py.Pass()]
+
+                self.in_class = False
+                return py.ClassDef(
+                    name=name,
+                    bases=bases,
+                    keywords=[],
+                    body=body,
+                    decorator_list=[],
                 )
 
             case Stmt_ClassConst():
@@ -772,12 +857,14 @@ class Translator:
                 return py.Pass
 
             case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
+                # debug(node)
                 args = []
                 defaults = []
                 decorator_list = []
+                stmts = stmts or []
 
-                decorator_list.append(py.Name("classmethod", py.Load()))
-                args.append(py.Name("cls", py.Param()))
+                # decorator_list.append(py.Name("classmethod", py.Load()))
+                args.append(py.Name("self", py.Param()))
 
                 # if "static" in node.modifiers:
                 #     decorator_list.append(
@@ -809,6 +896,11 @@ class Translator:
                 return py.FunctionDef(
                     name.name, arguments, body, decorator_list, **pos(node)
                 )
+
+            case Stmt_Switch():
+                debug()
+                print_ast(node)
+                return ast.Pass()
 
             # case Stmt_Method():
             #     args = []

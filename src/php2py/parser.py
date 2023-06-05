@@ -12,9 +12,8 @@ from .constants import APP_NAME
 PHP_PARSE = "vendor/nikic/php-parser/bin/php-parse"
 
 
-def install_parser(force: bool = False):
+def install_parser(force: bool = False, ignore_errors: bool = False):
     cache_dir = Path(user_cache_dir(APP_NAME))
-
     php_parse = cache_dir / PHP_PARSE
 
     if not force and php_parse.exists():
@@ -34,10 +33,9 @@ def install_parser(force: bool = False):
     subprocess.run("composer install", shell=True, cwd=cache_dir)
 
 
-def parse(source_code: str, php_parse: str | Path = ""):
-    if not php_parse:
-        php_parse = "vendor/nikic/php-parser/bin/php-parse"
-    php_parse = Path(php_parse)
+def parse(source_code):
+    cache_dir = Path(user_cache_dir(APP_NAME))
+    php_parse = cache_dir / PHP_PARSE
     assert php_parse.exists()
 
     with tempfile.NamedTemporaryFile("w", suffix=".php", delete=False) as source_file:
