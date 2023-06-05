@@ -51,6 +51,10 @@ pipx install php2py
 - Make a runtime / stdlib of common PHP functions in Python.
 - Cleanup.
 
+## Prior art
+
+- <https://github.com/nicolasrod/php2python>
+
 ## Contributing
 
 I don't have time to work on this project ATM, but I'm happy to review pull requests.

@@ -4,7 +4,34 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from platformdirs import user_cache_dir
+
 from . import php_ast
+from .constants import APP_NAME
+
+PHP_PARSE = "vendor/nikic/php-parser/bin/php-parse"
+
+
+def install_parser(force: bool = False):
+    cache_dir = Path(user_cache_dir(APP_NAME))
+
+    php_parse = cache_dir / PHP_PARSE
+
+    if not force and php_parse.exists():
+        return
+
+    Path(cache_dir).mkdir(exist_ok=True)
+
+    etc_dir = Path(__file__).parent / "etc"
+    print(etc_dir)
+    for file in etc_dir.glob("*"):
+        dest = cache_dir / file.name
+        print(dest)
+        if dest.exists():
+            continue
+        dest.write_text(file.read_text())
+
+    subprocess.run("composer install", shell=True, cwd=cache_dir)
 
 
 def parse(source_code: str, php_parse: str | Path = ""):

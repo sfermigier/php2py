@@ -133,14 +133,14 @@ class Translator:
             case Node():
                 node_type = node.__class__.__name__
 
-                if node_type.startswith("Stmt_"):
-                    return self.translate_stmt(node)
+                if node_type.startswith("Scalar_"):
+                    return self.translate_scalar(node)
 
                 if node_type.startswith("Expr_"):
                     return self.translate_expr(node)
 
-                if node_type.startswith("Scalar_"):
-                    return self.translate_scalar(node)
+                if node_type.startswith("Stmt_"):
+                    return self.translate_stmt(node)
 
                 else:
                     return self.translate_other(node)
