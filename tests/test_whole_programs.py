@@ -1,11 +1,17 @@
 from pathlib import Path
-from unittest import skip
+
+from devtools import debug
+from pytest import mark
 
 from .util import check_compiles
 
 
-@skip
-def test_accounts():
-    input = (Path(".") / "programs" / "dummy" / "accounts.php").open().read()
-    expected = ""
-    check_compiles(input, expected)
+def get_programs():
+    return (Path(__file__).parent / "programs").glob("*.php")
+
+
+@mark.parametrize("program", get_programs())
+def test_program(program: Path):
+    debug(program)
+    php = program.read_text()
+    check_compiles(php)

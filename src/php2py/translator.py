@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import ast
 import ast as py
-import sys
 from dataclasses import dataclass
-from types import NoneType
 
 from devtools import debug
 
@@ -80,6 +78,7 @@ from php2py.php_ast import (
     Stmt_UseUse,
     Stmt_While,
 )
+from php2py.py_ast import py_parse_stmt
 
 unary_ops = {
     "~": py.Invert,
@@ -215,16 +214,20 @@ class Translator:
                 # FIXME: 'parts' should be directly addressable
                 parts = node.name._json["parts"]
                 name = parts[0]
-                if name.lower() == "true":
-                    name = "True"
-                elif name.lower() == "false":
-                    name = "False"
-                elif name.lower() == "null":
-                    name = "None"
-                else:
-                    raise NotImplementedError(str(name))
-
-                return py.Name(name, py.Load())
+                match name.lower():
+                    case "true":
+                        return py.Name("True", py.Load())
+                    case "false":
+                        return py.Name("False", py.Load())
+                    case "null":
+                        return py.Name("None", py.Load())
+                match name:
+                    case "PHP_INT_MAX":
+                        return py.Name("sys.maxsize", py.Load())
+                    case "PHP_INT_MIN":
+                        return py.Name("sys.minsize", py.Load())
+                    case _:
+                        return py.Name(name, py.Load())
 
             case Expr_Array(items=items):
                 if not items:
@@ -358,7 +361,7 @@ class Translator:
                 # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
 
             case Expr_AssignOp(var=var, expr=expr):
-                debug(var.name)
+                debug(var.name, pos(node))
                 assert isinstance(var.name, str)
                 op = binary_ops[node.op[0:-1]]()
                 return py.AugAssign(
@@ -607,9 +610,13 @@ class Translator:
             case Stmt_Use(uses=uses):
                 return self.translate(uses)
 
-            case Stmt_UseUse():
-                # TODO
-                return py.Pass
+            case Stmt_UseUse(name, alias, type):
+                parts = name._json["parts"]
+                if alias:
+                    raise NotImplementedError()
+                else:
+                    module_name = ".".join(parts)
+                    return py_parse_stmt(f"from {module_name} import *")
 
             case Stmt_InlineHTML(value):
                 args = [py.Str(value)]

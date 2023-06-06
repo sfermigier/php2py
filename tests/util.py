@@ -55,7 +55,7 @@ def dump_php_ast(ast):
         return print(fd.read())
 
 
-def check_compiles(input, expected):
+def check_compiles(input, expected=""):
     php_ast = parse(input)
     try:
         py_ast = translate(input)
@@ -76,6 +76,9 @@ def check_compiles(input, expected):
         raise
 
     output = output.strip()
+
+    if not expected:
+        return
 
     if expected != output:
         print("php_ast:")

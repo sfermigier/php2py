@@ -49,7 +49,9 @@ def parse(source_code):
         which = shutil.which(args[0])
         assert which is not None
         with subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         ) as p:
             data = p.stdout.read()
             try:
