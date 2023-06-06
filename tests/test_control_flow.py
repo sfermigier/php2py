@@ -9,7 +9,7 @@ def test_while():
             echo $bar;
         }
     ?>"""
-    expected = "while True:\n" "    echo(bar)"
+    expected = "while True:\n" "    print(bar)"
     check_compiles(input, expected)
 
 
@@ -26,10 +26,10 @@ def test_while_with_break_and_continue():
     ?>"""
     expected = (
         "while True:\n"
-        "    echo(bar)\n"
+        "    print(bar)\n"
         "    break\n"
         "while True:\n"
-        "    echo(bar)\n"
+        "    print(bar)\n"
         "    continue"
     )
     check_compiles(input, expected)
@@ -56,15 +56,15 @@ def test_if():
     ?>"""
     expected = (
         "if True:\n"
-        "    echo(bar)\n"
+        "    print(bar)\n"
         "if True:\n"
-        "    echo(bar)\n"
+        "    print(bar)\n"
         "else:\n"
-        "    echo('bah')\n"
+        "    print('bah')\n"
         "if True:\n"
-        "    echo(bar)\n"
+        "    print(bar)\n"
         "elif False:\n"
-        "    echo('bah')"
+        "    print('bah')"
     )
     check_compiles(input, expected)
 
@@ -86,7 +86,7 @@ def test_foreach():
         # endforeach;
         # foreach ($foo as $bar[0]) {}
     ?>"""
-    expected = "for bar in foo:\n" "    echo(bar)\n" "pass"
+    expected = "for bar in foo:\n" "    print(bar)\n" "pass"
     check_compiles(input, expected)
 
 

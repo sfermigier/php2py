@@ -77,6 +77,8 @@ def check_compiles(input, expected=""):
 
     output = output.strip()
 
+    output_ast = ast.parse(output)
+
     if not expected:
         return
 

@@ -80,7 +80,7 @@ def test_constants():
 
 def test_echo():
     input = '<?php echo "hello, world!"; ?>'
-    expected = "echo('hello, world!')"
+    expected = "print('hello, world!')"
     check_compiles(input, expected)
 
 

@@ -8,7 +8,7 @@ def test_function():
         }
         foo();
     """
-    expected = "def foo():\n" "    echo('bar')\n" "foo()"
+    expected = "def foo():\n" "    print('bar')\n" "foo()"
     check_compiles(input, expected)
 
 
@@ -19,7 +19,7 @@ def test_function_with_args():
         }
         foo();
     """
-    expected = "def foo(bar):\n" "    echo(bar)\n" "foo()"
+    expected = "def foo(bar):\n" "    print(bar)\n" "foo()"
     check_compiles(input, expected)
 
 

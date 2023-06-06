@@ -16,8 +16,8 @@ def test_snippet(snippet: Path):
     ns = {}
     exec(snippet.read_bytes(), ns)
     php = ns["PHP"].strip()
-    expected = ns["EXPECTED"].strip()
-    if expected:
+    if "EXPECTED" in ns:
+        expected = ns["EXPECTED"].strip()
         check_compiles(php, expected)
     else:
         check_compiles(php)

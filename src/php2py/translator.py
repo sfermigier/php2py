@@ -203,7 +203,7 @@ class Translator:
                     raise NotImplementedError()
         return py.Str("".join(result))
 
-    def translate_expr(self, node):
+    def translate_expr(self, node: Node):
         match node:
             case Expr_Variable(name=name):
                 if name == "this":
@@ -594,12 +594,12 @@ class Translator:
                 return py.Pass(**pos(node))
 
             case Stmt_Echo(exprs):
-                return py.Call(
-                    func=py.Name("echo", py.Load()),
+                return py.Expr(value=py.Call(
+                    func=py.Name("print", py.Load()),
                     args=[self.translate(n) for n in exprs],
                     keywords=[],
                     **pos(node),
-                )
+                ))
 
             case Stmt_Expression(expr):
                 return py.Expr(value=self.translate(expr), **pos(node))
