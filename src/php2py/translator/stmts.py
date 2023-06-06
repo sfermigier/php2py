@@ -14,6 +14,7 @@ from php2py.php_ast import (
     Stmt_ClassConst,
     Stmt_ClassMethod,
     Stmt_Continue,
+    Stmt_Do,
     Stmt_Echo,
     Stmt_Expression,
     Stmt_For,
@@ -77,7 +78,7 @@ class StmtTranslator(ExprTranslator):
             case Stmt_UseUse(name, alias, type):
                 parts = name._json["parts"]
                 if alias:
-                    raise NotImplementedError()
+                    raise NotImplementedError("use with alias")
                 else:
                     module_name = ".".join(parts)
                     return py_parse_stmt(f"from {module_name} import *")
@@ -259,11 +260,10 @@ class StmtTranslator(ExprTranslator):
                     extends = [extends]
                 bases = []
                 for base_class in extends:
-                    debug(base_class)
                     base_class_name = base_class._json["parts"][0]
                     bases.append(py.Name(base_class_name, py.Load()))
 
-                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
+                body = [to_stmt(self.translate_stmt(stmt)) for stmt in stmts]
                 for stmt in body:
                     if isinstance(stmt, py.FunctionDef) and stmt.name in (
                         name,
@@ -327,7 +327,7 @@ class StmtTranslator(ExprTranslator):
                 if value is None:
                     return py.Yield(None)
                 else:
-                    return py.Yield(self.translate_expr(value))
+                    return py.Yield(self.translate(value))
 
             case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
                 args = []
@@ -341,7 +341,7 @@ class StmtTranslator(ExprTranslator):
                     param_name = param.var.name
                     args.append(py.Name(param_name, py.Param()))
                     if param.default is not None:
-                        defaults.append(self.translate_expr(param.default))
+                        defaults.append(self.translate(param.default))
 
                 # if "static" in node.modifiers:
                 #     decorator_list.append(
@@ -375,8 +375,7 @@ class StmtTranslator(ExprTranslator):
                 )
 
             case Stmt_Switch():
-                debug()
-                print_ast(node)
+                # TODO: switch
                 return ast.Pass()
 
             # case Stmt_Method():
@@ -515,6 +514,18 @@ class StmtTranslator(ExprTranslator):
 
             case Stmt_Static():
                 # TODO
+                return py.Pass()
+
+            case Stmt_Do():
+                # TODO
+                # Example:
+                # node: (
+                #     Stmt_Do(stmts=[Stmt_Expression(expr=Expr_Assign(var=Expr_ArrayDimFetch(var=Expr_PropertyFetch(var=Expr_Variable(
+                #     name='this'), name=Identifier(name='linearVersions')), dim=Expr_MethodCall(var=Expr_Variable(name='version'),
+                #     name=Identifier(name='getName'), args=[])), expr=Expr_Variable(name='version')))],
+                #     cond=Expr_Assign(var=Expr_Variable(name='version'), expr=Expr_MethodCall(var=Expr_Variable(name='version'),
+                #     name=Identifier(name='getLinearSuccessor'), args=[])))
+                # ) (Stmt_Do)
                 return py.Pass()
 
             case _:

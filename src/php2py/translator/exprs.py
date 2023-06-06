@@ -252,7 +252,7 @@ class ExprTranslator(ScalarTranslator):
                 # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
 
             case Expr_AssignOp(var=var, expr=expr):
-                debug(var.name, pos(node))
+                # debug(var.name, pos(node))
                 assert isinstance(var.name, str)
                 op = binary_ops[node.op[0:-1]]()
                 return py.AugAssign(
@@ -329,7 +329,6 @@ class ExprTranslator(ScalarTranslator):
                 )
 
             case Expr_Isset(vars):
-                debug(vars)
                 assert len(vars) == 1
                 var = vars[0]
                 match var:
@@ -457,7 +456,19 @@ class ExprTranslator(ScalarTranslator):
             case Expr_Closure():
                 # TODO
                 # return py.parse("None", mode="eval")
-                debug(node, node._json)
+                # debug(node, node._json)
+                # Exemple
+                #     node: (
+                #         Expr_Closure(attrGroups=[], uses=[], byRef=False, returnType=None,
+                #         stmts=[Stmt_Return(expr=Expr_MethodCall(var=Expr_Variable(name='nt'),
+                #         name=Identifier(name='getPropertyDefinitions'), args=[]))],
+                #         params=[
+                #            Param(flags=0, attrGroups=[], default=None,
+                #            byRef=False, variadic=False, var=Expr_Variable(name='nt'),
+                #            type=Name(parts=[None]))
+                #         ],
+                #         static=False)
+                #     ) (Expr_Closure)
                 raise NotImplementedError(node.__class__.__name__)
 
             case Expr_List(items):
