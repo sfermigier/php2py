@@ -358,6 +358,7 @@ class Translator:
                 # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
 
             case Expr_AssignOp(var=var, expr=expr):
+                debug(var.name)
                 assert isinstance(var.name, str)
                 op = binary_ops[node.op[0:-1]]()
                 return py.AugAssign(

@@ -1,9 +1,11 @@
 import json
 import shlex
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
+from devtools import debug
 from platformdirs import user_cache_dir
 
 from . import php_ast
@@ -44,10 +46,17 @@ def parse(source_code):
 
         cmd_line = f"{php_parse} -j {source_file.name}"
         args = shlex.split(cmd_line)
+        which = shutil.which(args[0])
+        assert which is not None
         with subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ) as p:
-            json_ast = json.load(p.stdout)
+            data = p.stdout.read()
+            try:
+                json_ast = json.loads(data)
+            except json.JSONDecodeError:
+                debug(args, which, data, stderr=p.stderr.read())
+                raise ValueError("Could not parse PHP file")
             result = make_ast(json_ast)
 
     return result

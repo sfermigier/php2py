@@ -40,6 +40,10 @@ restructuredtext_lint = "^1.4.0"
 php2py = "php2py.cli:cli"
 
 
+[tool.poetry.group.dev.dependencies]
+abilian-devtools = "^0.5.2"
+coverage = "^7.2.7"
+
 [tool.ruff]
 extend-ignore = [
     "S101", # Use of 'assert'
