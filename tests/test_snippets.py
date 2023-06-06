@@ -7,7 +7,7 @@ from .util import check_compiles
 
 
 def get_snippets():
-    paths = (Path(__file__).parent / "snippets").glob("*.php")
+    paths = (Path(__file__).parent / "snippets").glob("*.py")
     for path in paths:
         if path.name.startswith("_"):
             continue

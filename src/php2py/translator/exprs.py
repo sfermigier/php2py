@@ -99,7 +99,7 @@ compare_ops = {
 class ExprTranslator(ScalarTranslator):
     def translate_expr(self, node: Node):
         match node:
-            case Expr_Variable(name=name):
+            case Expr_Variable(name):
                 if name == "this":
                     name = "self"
                 return py.Name(name, py.Load())
@@ -123,7 +123,7 @@ class ExprTranslator(ScalarTranslator):
                     case _:
                         return py.Name(name, py.Load())
 
-            case Expr_Array(items=items):
+            case Expr_Array(items):
                 if not items:
                     return py.List([], py.Load(**pos(node)), **pos(node))
 
@@ -145,14 +145,14 @@ class ExprTranslator(ScalarTranslator):
             #
             # Unary ops
             #
-            case Expr_UnaryOp(expr=expr):
+            case Expr_UnaryOp(expr):
                 op = unary_ops[node.op]()
                 return py.UnaryOp(op, self.translate(expr))
 
             #
             # Binary ops
             #
-            case Expr_BinaryOp(left=left, right=right):
+            case Expr_BinaryOp(left, right):
                 if node.op in binary_ops:
                     op = binary_ops[node.op]()
                     return py.BinOp(self.translate(left), op, self.translate(right))
@@ -210,7 +210,7 @@ class ExprTranslator(ScalarTranslator):
             #         )
 
             # other ops
-            case Expr_Ternary(cond=cond, if_=if_, else_=else_):
+            case Expr_Ternary(cond, if_, else_):
                 return py.IfExp(
                     self.translate(cond),
                     self.translate(if_),
@@ -254,7 +254,7 @@ class ExprTranslator(ScalarTranslator):
                 # rhs = self.parse(node['expr'])
                 # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
 
-            case Expr_AssignOp(var=var, expr=expr):
+            case Expr_AssignOp(var, expr):
                 lhs = self.translate(var)
                 # if not isinstance(var.name, str):
                 #     debug(type(var.name), var.name, pos(node))

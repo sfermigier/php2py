@@ -1,5 +1,7 @@
 from textwrap import dedent
 
+import pytest
+
 from .util import check_compiles
 
 
@@ -34,15 +36,16 @@ def test_assignment_ops():
         a += 5
         b -= 6
         c += d
-        e ^= f    
+        e ^= f
     """
     )
     check_compiles(input, expected)
 
 
-# def test_list_assignment():
-#     input = r"""<?php
-#         list($a, $b, $c) = $d;
-#     ?>"""
-#     expected = "xxx += 5\n" "\n" "xxx -= 6\n" "\n" "xxx += d\n" "\n" "xxx ^= f"
-#     check_compiles(input, expected)
+@pytest.mark.skip("TODO")
+def test_list_assignment():
+    input = r"""<?php
+        list($a, $b, $c) = $d;
+    ?>"""
+    expected = ""
+    check_compiles(input, expected)

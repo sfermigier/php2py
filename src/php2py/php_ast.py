@@ -552,8 +552,8 @@ class Expr_StaticPropertyFetch(Expr):
 
 @frozen
 class Expr_Ternary(Expr):
-    if_: Expr | None | Scalar_Encapsed | Scalar_LNumber | Scalar_String
     cond: Expr
+    if_: Expr | None | Scalar_Encapsed | Scalar_LNumber | Scalar_String
     else_: Expr | Scalar_DNumber | Scalar_Encapsed | Scalar_LNumber | Scalar_String
 
 
