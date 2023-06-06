@@ -37,6 +37,7 @@ from php2py.php_ast import (
     Expr_PreInc,
     Expr_PropertyFetch,
     Expr_StaticCall,
+    Expr_StaticPropertyFetch,
     Expr_Ternary,
     Expr_UnaryOp,
     Expr_Variable,
@@ -254,12 +255,15 @@ class ExprTranslator(ScalarTranslator):
                 # return f"""{lhs} = {lhs} if {lhs} is not None else {rhs}"""
 
             case Expr_AssignOp(var=var, expr=expr):
-                # debug(var.name, pos(node))
-                assert isinstance(var.name, str)
+                lhs = self.translate(var)
+                # if not isinstance(var.name, str):
+                #     debug(type(var.name), var.name, pos(node))
+                #     raise ValueError("var.name is not str")
+
                 op = binary_ops[node.op[0:-1]]()
                 return py.AugAssign(
-                    target=py.Name(id=var.name, ctx=py.Store()),
-                    op=py.Add(),
+                    target=lhs,
+                    op=op,
                     value=self.translate(expr),
                     **pos(node),
                 )
@@ -406,8 +410,15 @@ class ExprTranslator(ScalarTranslator):
 
             case Expr_New(class_=class_, args=args):
                 args, kwargs = self.build_args(args)
-                name = class_.get_parts()[0]
-                func = py.Name(name, py.Load())
+                func = self.translate(class_)
+                # match class_:
+                #     case Expr_Variable(name):
+                #
+                #         pass
+                #     case _:
+                #         debug(class_)
+                #         name = class_.get_parts()[0]
+                # func = py.Name(name, py.Load())
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_MethodCall(var=var, name=name, args=args):
@@ -438,7 +449,9 @@ class ExprTranslator(ScalarTranslator):
                     )
                 else:
                     # TODO
-                    return py.Name("TODO")
+                    debug(node)
+                    raise NotImplementedError(node)
+                    # return py.Name("TODO")
                     # return py.Subscript(
                     #     value=self.translate(var),
                     #     slice=py.Index(self.translate(dim)),
@@ -484,6 +497,15 @@ class ExprTranslator(ScalarTranslator):
                     func=py.Name("isinstance", py.Load()),
                     args=[self.translate(expr), self.translate(class_)],
                     keywords=[],
+                )
+
+            case Expr_StaticPropertyFetch(class_, name):
+                class_name = class_.get_parts()[0]
+                return py.Attribute(
+                    value=py.Name(id=class_name, ctx=py.Load()),
+                    attr=name.name,
+                    ctx=py.Load(),
+                    **pos(node),
                 )
 
             case _:

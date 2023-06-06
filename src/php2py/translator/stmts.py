@@ -74,10 +74,11 @@ class StmtTranslator(ExprTranslator):
 
             case Stmt_UseUse(name, alias, type):
                 parts = name.get_parts()
+                module_name = ".".join(parts)
                 if alias:
-                    raise NotImplementedError("use with alias")
+                    alias_name = alias.name
+                    return py_parse_stmt(f"import {module_name} as {alias_name}")
                 else:
-                    module_name = ".".join(parts)
                     return py_parse_stmt(f"from {module_name} import *")
 
             case Stmt_InlineHTML(value):

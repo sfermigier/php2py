@@ -43,6 +43,11 @@ class Translator(StmtTranslator):
                     name = parts[0]
                     return py.Name(name, py.Load())
 
+                if node_type == "Name_FullyQualified":
+                    parts = node.get_parts()
+                    name = parts[0]
+                    return py.Name(name, py.Load())
+
                 return self.translate_other(node)
 
             case _:

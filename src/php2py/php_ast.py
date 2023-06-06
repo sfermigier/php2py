@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from attr import dataclass
+from devtools import debug
 
 frozen = dataclass
 
@@ -24,7 +25,14 @@ class Node:
         # return self._attributes["col_offset"]
 
     def get_parts(self):
-        return self._json["parts"]
+        if "parts" in self._json:
+            return self._json["parts"]
+
+        if "name" in self._json:
+            return [self._json["name"]]
+
+        debug(self._json)
+        raise ValueError()
 
 
 @frozen

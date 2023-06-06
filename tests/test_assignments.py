@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from .util import check_compiles
 
 
@@ -27,15 +29,16 @@ def test_assignment_ops():
         $c .= $d;
         $e ^= $f;
     ?>"""
-    expected = (
-        "a += 5\n"
-        "\n"
-        "b += 6\n"
-        "\n"
-        "c += d\n"
-        "\n"
-        "e += f"
-        #
+    expected = dedent(
+        """\
+        a += 5
+
+        b -= 6
+
+        c += d
+
+        e ^= f    
+    """
     )
     check_compiles(input, expected)
 
