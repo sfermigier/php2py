@@ -700,13 +700,13 @@ class Stmt_Catch(Stmt):
 
 @frozen
 class Stmt_Class(Stmt):
+    name: Identifier | None
+    implements: list[Node] | list[Stmt]
+    extends: Name | Name_FullyQualified | None
+    stmts: list[Stmt]
     attrGroups: list[Stmt]
     flags: int
-    extends: Name | Name_FullyQualified | None
-    implements: list[Node] | list[Stmt]
     namespacedName: None
-    stmts: list[Stmt]
-    name: Identifier | None
 
 
 @frozen

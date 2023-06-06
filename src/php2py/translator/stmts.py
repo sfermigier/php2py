@@ -66,10 +66,10 @@ class StmtTranslator(ExprTranslator):
             case Stmt_Expression(expr):
                 return py.Expr(value=self.translate(expr), **pos(node))
 
-            case Stmt_Namespace(stmts=stmts):
+            case Stmt_Namespace(stmts, name):
                 return self.translate(stmts)
 
-            case Stmt_Use(uses=uses):
+            case Stmt_Use(uses, type):
                 return self.translate(uses)
 
             case Stmt_UseUse(name, alias, type):
@@ -96,7 +96,7 @@ class StmtTranslator(ExprTranslator):
             #
             # Control flow
             #
-            case Stmt_If(cond=cond, stmts=stmts, else_=else_):
+            case Stmt_If(cond, stmts, elseifs, else_):
                 if else_:
                     orelse = [
                         to_stmt(self.translate(stmt)) for stmt in node.else_.stmts
@@ -104,7 +104,7 @@ class StmtTranslator(ExprTranslator):
                 else:
                     orelse = []
 
-                for elseif in reversed(node.elseifs):
+                for elseif in reversed(elseifs):
                     orelse = [
                         py.If(
                             test=self.translate(elseif.cond),
@@ -156,14 +156,14 @@ class StmtTranslator(ExprTranslator):
                 #     )
                 # )
 
-            case Stmt_Foreach(expr=expr, valueVar=value_var, stmts=stmts):
-                if node.keyVar is None:
+            case Stmt_Foreach(expr, value_var, stmts, by_ref, key_var):
+                if key_var is None:
                     target = py.Name(value_var.name, py.Store())
                 else:
                     target = py.Tuple(
                         [
-                            py.Name(node.keyVar.name[1:], py.Store()),
-                            py.Name(node.valueVar.name[1:], py.Store()),
+                            py.Name(key_var.name[1:], py.Store()),
+                            py.Name(value_var.name[1:], py.Store()),
                         ],
                         py.Store(),
                     )
@@ -176,7 +176,7 @@ class StmtTranslator(ExprTranslator):
                     **pos(node),
                 )
 
-            case Stmt_While(cond=cond, stmts=stmts):
+            case Stmt_While(cond, stmts):
                 return py.While(
                     self.translate(cond),
                     [to_stmt(self.translate(stmt)) for stmt in stmts],
@@ -184,11 +184,11 @@ class StmtTranslator(ExprTranslator):
                     **pos(node),
                 )
 
-            case Stmt_Break(num=num):
+            case Stmt_Break(num):
                 assert num is None, "level on break not supported"
                 return py.Break(**pos(node))
 
-            case Stmt_Continue(num=num):
+            case Stmt_Continue(num):
                 assert num is None, "level on continue not supported"
                 return py.Continue(**pos(node))
 
@@ -211,7 +211,7 @@ class StmtTranslator(ExprTranslator):
             #
             # Class definitions
             #
-            case Stmt_Class(name=name, stmts=stmts, extends=extends):
+            case Stmt_Class(name, implements, extends, stmts):
                 self.in_class = True
                 name = name.name
 
@@ -223,6 +223,9 @@ class StmtTranslator(ExprTranslator):
                 for base_class in extends:
                     base_class_name = base_class.get_parts()[0]
                     bases.append(py.Name(base_class_name, py.Load()))
+                for interface in implements:
+                    interface_name = interface.get_parts()[0]
+                    bases.append(py.Name(interface_name, py.Load()))
 
                 body = [to_stmt(self.translate(stmt)) for stmt in stmts]
                 for stmt in body:
@@ -482,7 +485,7 @@ class StmtTranslator(ExprTranslator):
             #
             # Exceptions
             #
-            case Stmt_TryCatch(stmts=stmts, catches=catches, finally_=finally_):
+            case Stmt_TryCatch(stmts, catches, finally_):
                 # handlers = [
                 #     py.ExceptHandler(
                 #         py.Name(catch.class_, py.Load(**pos(node)), **pos(node)),

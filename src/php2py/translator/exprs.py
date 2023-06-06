@@ -322,7 +322,7 @@ class ExprTranslator(ScalarTranslator):
                     **pos(node),
                 )
 
-            case Expr_PropertyFetch(var=var, name=name):
+            case Expr_PropertyFetch(var, name):
                 name = name.name
                 # if isinstance(node.name, (Variable, BinaryOp)):
                 #     return py.Call(
@@ -380,12 +380,10 @@ class ExprTranslator(ScalarTranslator):
 
             case Expr_Empty(expr):
                 return self.translate(
-                    Expr_BooleanNot(
-                        Expr_BinaryOp_BooleanAnd(Expr_Isset([node.expr]), expr)
-                    )
+                    Expr_BooleanNot(Expr_BinaryOp_BooleanAnd(Expr_Isset([expr]), expr))
                 )
 
-            case Expr_FuncCall(name=name, args=args):
+            case Expr_FuncCall(name, args):
                 if hasattr(name, "name"):
                     name = name.name
                 else:
@@ -408,7 +406,7 @@ class ExprTranslator(ScalarTranslator):
                 args, kwargs = self.build_args(args)
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
-            case Expr_New(class_=class_, args=args):
+            case Expr_New(class_, args):
                 args, kwargs = self.build_args(args)
                 func = self.translate(class_)
                 # match class_:
@@ -421,7 +419,7 @@ class ExprTranslator(ScalarTranslator):
                 # func = py.Name(name, py.Load())
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
-            case Expr_MethodCall(var=var, name=name, args=args):
+            case Expr_MethodCall(var, name, args):
                 name = name.name
                 args, kwargs = self.build_args(args)
                 func = py.Attribute(value=self.translate(var), attr=name, ctx=py.Load())
@@ -439,7 +437,7 @@ class ExprTranslator(ScalarTranslator):
 
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
-            case Expr_ArrayDimFetch(var=var, dim=dim):
+            case Expr_ArrayDimFetch(var, dim):
                 if dim:
                     return py.Subscript(
                         value=self.translate(var),
@@ -459,7 +457,7 @@ class ExprTranslator(ScalarTranslator):
                     #     **pos(node),
                     # )
 
-            case Expr_ClassConstFetch(name=name, class_=class_):
+            case Expr_ClassConstFetch(name, class_):
                 class_name = class_.get_parts()[0]
                 return py.Attribute(
                     value=py.Name(id=class_name, ctx=py.Load()),
