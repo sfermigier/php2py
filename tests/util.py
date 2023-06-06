@@ -101,6 +101,11 @@ def check_compiles(input, expected=""):
         astpretty.pprint(output_ast)
         print(78 * "-")
 
+        print(red("expected:"))
+        print(78 * "-")
+        print(expected)
+        print(78 * "-")
+
         print(red("output:"))
         print(78 * "-")
         print(output)

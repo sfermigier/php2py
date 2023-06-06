@@ -1,3 +1,4 @@
+from textwrap import dedent
 from unittest import skip
 
 from .util import check_compiles
@@ -10,6 +11,23 @@ def test_while():
         }
     ?>"""
     expected = "while True:\n" "    print(bar)"
+    check_compiles(input, expected)
+
+
+def test_do():
+    input = r"""<?php
+        do {
+            echo $bar;
+        } while (true);
+    ?>"""
+    expected = dedent(
+        """
+        while True:
+            print(bar)
+            if not True:
+                break
+    """
+    )
     check_compiles(input, expected)
 
 

@@ -244,6 +244,7 @@ class StmtTranslator(ExprTranslator):
                     keywords=[],
                     body=body,
                     decorator_list=[],
+                    **pos(node),
                 )
 
             case Stmt_Interface(name=name, stmts=stmts, extends=extends):
@@ -281,11 +282,12 @@ class StmtTranslator(ExprTranslator):
                     keywords=[],
                     body=body,
                     decorator_list=[],
+                    **pos(node),
                 )
 
             case Stmt_ClassConst():
                 # TODO
-                return py.Pass
+                return py.Pass(**pos(node))
 
             #
             # Functions / methods
@@ -295,10 +297,10 @@ class StmtTranslator(ExprTranslator):
                 defaults = []
 
                 if self.in_class:
-                    args.append(py.Name("self", py.Param()))
+                    args.append(py.Name("self", py.Param(**pos(node)), **pos(node)))
                 for param in params:
                     param_name = param.var.name
-                    args.append(py.Name(param_name, py.Param()))
+                    args.append(py.Name(param_name, py.Param(), **pos(node)))
                     if param.default is not None:
                         defaults.append(self.translate(param.default))
 
@@ -314,21 +316,34 @@ class StmtTranslator(ExprTranslator):
                     kw_defaults=[],
                     kwarg=None,
                     defaults=defaults,
+                    **pos(node),
                 )
                 return py.FunctionDef(name.name, arguments, body, [], **pos(node))
 
             case Stmt_Return(expr):
                 if expr is None:
-                    return py.Return(None)
+                    return py.Return(
+                        None,
+                        **pos(node),
+                    )
                 else:
-                    return py.Return(self.translate(expr))
+                    return py.Return(
+                        self.translate(expr),
+                        **pos(node),
+                    )
 
             case Expr_Yield(key=key, value=value):
                 # TODO: what do we do with 'key' ?
                 if value is None:
-                    return py.Yield(None)
+                    return py.Yield(
+                        None,
+                        **pos(node),
+                    )
                 else:
-                    return py.Yield(self.translate(value))
+                    return py.Yield(
+                        self.translate(value),
+                        **pos(node),
+                    )
 
             case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
                 args = []
@@ -369,6 +384,7 @@ class StmtTranslator(ExprTranslator):
                     kw_defaults=[],
                     kwarg=None,
                     defaults=defaults,
+                    **pos(node),
                 )
 
                 return py.FunctionDef(
@@ -377,7 +393,9 @@ class StmtTranslator(ExprTranslator):
 
             case Stmt_Switch():
                 # TODO: switch
-                return ast.Pass()
+                return ast.Pass(
+                    **pos(node),
+                )
 
             # case Stmt_Method():
             #     args = []
@@ -499,6 +517,7 @@ class StmtTranslator(ExprTranslator):
                         py.Name("Exception", py.Load()),
                         None,
                         [py.Pass()],
+                        **pos(node),
                     )
                 ]
 
@@ -514,20 +533,20 @@ class StmtTranslator(ExprTranslator):
                 return py.Raise(exc=self.translate(expr), cause=None, **pos(node))
 
             case Stmt_Static():
-                # TODO
-                return py.Pass()
+                debug(node)
+                raise NotImplementedError(
+                    f"Don't know how to translate node {node.__class__}"
+                )
 
-            case Stmt_Do():
-                # TODO
-                # Example:
-                # node: (
-                #     Stmt_Do(stmts=[Stmt_Expression(expr=Expr_Assign(var=Expr_ArrayDimFetch(var=Expr_PropertyFetch(var=Expr_Variable(
-                #     name='this'), name=Identifier(name='linearVersions')), dim=Expr_MethodCall(var=Expr_Variable(name='version'),
-                #     name=Identifier(name='getName'), args=[])), expr=Expr_Variable(name='version')))],
-                #     cond=Expr_Assign(var=Expr_Variable(name='version'), expr=Expr_MethodCall(var=Expr_Variable(name='version'),
-                #     name=Identifier(name='getLinearSuccessor'), args=[])))
-                # ) (Stmt_Do)
-                return py.Pass()
+            case Stmt_Do(cond, stmts):
+                body = [to_stmt(self.translate(node)) for node in stmts]
+                inverted_cond = py.UnaryOp(py.Not(), self.translate(cond))
+                body += [py.If(inverted_cond, to_stmt(py.Break()), [])]
+                return py.While(
+                    test=py.Name("True", py.Load()),
+                    body=body,
+                    orelse=[],
+                )
 
             case _:
                 debug(node)

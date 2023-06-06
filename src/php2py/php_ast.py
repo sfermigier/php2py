@@ -751,8 +751,8 @@ class Stmt_DeclareDeclare(Stmt):
 
 @frozen
 class Stmt_Do(Stmt):
-    stmts: list[Stmt]
     cond: Expr | Scalar_LNumber
+    stmts: list[Stmt]
 
 
 @frozen
