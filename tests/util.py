@@ -1,10 +1,13 @@
 import ast
 import shlex
 import subprocess
+import sys
 import tempfile
 from ast import unparse
 
+import astpretty
 import rich
+from cleez.colors import red
 from devtools import debug
 
 from php2py.parser import parse
@@ -71,22 +74,59 @@ def check_compiles(input, expected=""):
         rich.print("[red]Error while translating[/red]")
         print("php_ast:")
         dump_php_ast(php_ast)
-        print("py_ast=", ast.dump(py_ast, indent=2))
+        print("py_ast:", ast.dump(py_ast, indent=2))
         # print("py_ast=", astpretty.pprint(py_ast, indent="  "))
         raise
 
     output = output.strip()
 
+    # Check Python code is syntactically valid
     output_ast = ast.parse(output)
 
     if not expected:
         return
 
-    if expected != output:
-        print("php_ast:")
-        dump_php_ast(php_ast)
-        print("py_ast=", ast.dump(py_ast, indent=2))
-        # print("py_ast=", astpretty.pprint(py_ast, indent="  "))
-        debug(output)
+    expected = blacken(expected).strip()
+    blacked_output = blacken(output).strip()
 
-    assert expected == output
+    if expected != blacked_output:
+        print(red("php_ast:"))
+        print(78 * "-")
+        dump_php_ast(php_ast)
+        print(78 * "-")
+
+        print(red("py_ast:"))
+        print(78 * "-")
+        astpretty.pprint(output_ast)
+        print(78 * "-")
+
+        print(red("output:"))
+        print(78 * "-")
+        print(output)
+        print(78 * "-")
+
+        print(red("output formatted:"))
+        print(78 * "-")
+        print(blacked_output)
+        print(78 * "-")
+
+        sys.stdout.flush()
+
+    assert expected == blacked_output
+
+
+def blacken(code):
+    with tempfile.NamedTemporaryFile("w+", suffix=".py") as fd:
+        fd.write(code)
+        fd.flush()
+
+        cmd_line = f"black {fd.name}"
+        args = shlex.split(cmd_line)
+        with subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ) as p:
+            stdout, stderr = p.communicate()
+            p.wait()
+
+        fd.seek(0)
+        return fd.read()

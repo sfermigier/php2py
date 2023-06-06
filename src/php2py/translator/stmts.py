@@ -210,48 +210,6 @@ class StmtTranslator(ExprTranslator):
             #     )
 
             #
-            # Functions / methods
-            #
-            case Stmt_Function(name=name, params=params, stmts=stmts):
-                args = []
-                if self.in_class:
-                    args.append(py.Name("self", py.Param()))
-                defaults = []
-                for param in params:
-                    param_name = param.var.name
-                    args.append(py.Name(param_name, py.Param()))
-                    if param.default is not None:
-                        defaults.append(self.translate(param.default))
-
-                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
-                if not body:
-                    body = [py.Pass(**pos(node))]
-
-                arguments = py.arguments(
-                    posonlyargs=[],
-                    args=args,
-                    vararg=None,
-                    kwonlyargs=[],
-                    kw_defaults=[],
-                    kwarg=None,
-                    defaults=defaults,
-                )
-                return py.FunctionDef(name.name, arguments, body, [], **pos(node))
-
-            case Stmt_Return(expr):
-                if expr is None:
-                    return py.Return(None)
-                else:
-                    return py.Return(self.translate(expr))
-
-            case Expr_Yield(key=key, value=value):
-                # TODO: what do we do with 'key' ?
-                if value is None:
-                    return py.Yield(None)
-                else:
-                    return py.Yield(self.translate(value))
-
-            #
             # Class definitions
             #
             case Stmt_Class(name=name, stmts=stmts, extends=extends):
@@ -328,15 +286,62 @@ class StmtTranslator(ExprTranslator):
                 # TODO
                 return py.Pass
 
+            #
+            # Functions / methods
+            #
+            case Stmt_Function(name=name, params=params, stmts=stmts):
+                args = []
+                defaults = []
+
+                if self.in_class:
+                    args.append(py.Name("self", py.Param()))
+                for param in params:
+                    param_name = param.var.name
+                    args.append(py.Name(param_name, py.Param()))
+                    if param.default is not None:
+                        defaults.append(self.translate(param.default))
+
+                body = [to_stmt(self.translate(stmt)) for stmt in stmts]
+                if not body:
+                    body = [py.Pass(**pos(node))]
+
+                arguments = py.arguments(
+                    posonlyargs=[],
+                    args=args,
+                    vararg=None,
+                    kwonlyargs=[],
+                    kw_defaults=[],
+                    kwarg=None,
+                    defaults=defaults,
+                )
+                return py.FunctionDef(name.name, arguments, body, [], **pos(node))
+
+            case Stmt_Return(expr):
+                if expr is None:
+                    return py.Return(None)
+                else:
+                    return py.Return(self.translate(expr))
+
+            case Expr_Yield(key=key, value=value):
+                # TODO: what do we do with 'key' ?
+                if value is None:
+                    return py.Yield(None)
+                else:
+                    return py.Yield(self.translate_expr(value))
+
             case Stmt_ClassMethod(name=name, params=params, stmts=stmts):
-                # debug(node)
                 args = []
                 defaults = []
                 decorator_list = []
                 stmts = stmts or []
 
-                # decorator_list.append(py.Name("classmethod", py.Load()))
-                args.append(py.Name("self", py.Param()))
+                if self.in_class:
+                    args.append(py.Name("self", py.Param()))
+                for param in params:
+                    param_name = param.var.name
+                    args.append(py.Name(param_name, py.Param()))
+                    if param.default is not None:
+                        defaults.append(self.translate_expr(param.default))
 
                 # if "static" in node.modifiers:
                 #     decorator_list.append(
