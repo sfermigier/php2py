@@ -21,8 +21,7 @@ class Translator(StmtTranslator):
     def translate_root(self, root_node):
         return py.Module(body=[self.translate(n) for n in root_node], type_ignores=[])
 
-    def translate(self, node):
-        # debug(node)
+    def translate(self, node: Node):
         match node:
             case [*_]:
                 return [self.translate(n) for n in node]
@@ -40,7 +39,7 @@ class Translator(StmtTranslator):
                     return self.translate_stmt(node)
 
                 if node_type == "Name":
-                    parts = node._json["parts"]
+                    parts = node.get_parts()
                     name = parts[0]
                     return py.Name(name, py.Load())
 

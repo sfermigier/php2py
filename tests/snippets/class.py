@@ -6,7 +6,7 @@ class Car {
     function Car() {
         $this->model = "Tesla";
     }
-    
+
     function hello($x, $y, $z) {
         return "beep";
     }

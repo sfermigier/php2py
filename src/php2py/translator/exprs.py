@@ -3,6 +3,7 @@ import ast as py
 from devtools import debug
 
 from php2py.php_ast import (
+    Arg,
     Expr_Array,
     Expr_ArrayDimFetch,
     Expr_Assign,
@@ -41,8 +42,9 @@ from php2py.php_ast import (
     Expr_Variable,
     Node,
 )
-from php2py.translator.scalars import ScalarTranslator
-from php2py.translator.utils import pos, store
+
+from .scalars import ScalarTranslator
+from .utils import pos, store
 
 unary_ops = {
     "~": py.Invert,
@@ -103,7 +105,7 @@ class ExprTranslator(ScalarTranslator):
 
             case Expr_ConstFetch():
                 # FIXME: 'parts' should be directly addressable
-                parts = node.name._json["parts"]
+                parts = node.name.get_parts()
                 name = parts[0]
                 match name.lower():
                     case "true":
@@ -383,7 +385,7 @@ class ExprTranslator(ScalarTranslator):
                 if hasattr(name, "name"):
                     name = name.name
                 else:
-                    name = name._json["parts"][0]
+                    name = name.get_parts()[0]
                 func = py.Name(name, py.Load())
 
                 # if isinstance(name, str):
@@ -404,7 +406,7 @@ class ExprTranslator(ScalarTranslator):
 
             case Expr_New(class_=class_, args=args):
                 args, kwargs = self.build_args(args)
-                name = class_._json["parts"][0]
+                name = class_.get_parts()[0]
                 func = py.Name(name, py.Load())
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
@@ -415,7 +417,7 @@ class ExprTranslator(ScalarTranslator):
                 return py.Call(func=func, args=args, keywords=kwargs, **pos(node))
 
             case Expr_StaticCall(class_, name, args):
-                class_name = class_._json["parts"][0]
+                class_name = class_.get_parts()[0]
                 if class_name == "self":
                     class_name = "cls"
                 args, kwargs = self.build_args(args)
@@ -445,7 +447,7 @@ class ExprTranslator(ScalarTranslator):
                     # )
 
             case Expr_ClassConstFetch(name=name, class_=class_):
-                class_name = class_._json["parts"][0]
+                class_name = class_.get_parts()[0]
                 return py.Attribute(
                     value=py.Name(id=class_name, ctx=py.Load()),
                     attr=name.name,
@@ -489,3 +491,19 @@ class ExprTranslator(ScalarTranslator):
                 raise NotImplementedError(
                     f"Don't know how to translate node {node.__class__}"
                 )
+
+    def build_args(self, php_args: list[Node]):
+        args = []
+        kwargs = []
+        for arg in php_args:
+            match arg:
+                case Arg(name=None, value=value):
+                    args.append(self.translate(value))
+
+                case Arg(name=name, value=value):
+                    kwargs.append(py.keyword(arg=name, value=self.translate(value)))
+
+                case _:
+                    raise NotImplementedError("Should not happen")
+
+        return args, kwargs

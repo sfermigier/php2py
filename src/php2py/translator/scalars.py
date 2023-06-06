@@ -12,6 +12,8 @@ from php2py.php_ast import (
     Scalar_String,
 )
 
+from .base import BaseTranslator
+
 # casts = {
 #     "double": "float",
 #     "string": "str",
@@ -19,7 +21,7 @@ from php2py.php_ast import (
 # }
 
 
-class ScalarTranslator:
+class ScalarTranslator(BaseTranslator):
     def translate_scalar(self, node: Node):
         match node:
             case Scalar_String(value=value):

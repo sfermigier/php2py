@@ -23,6 +23,9 @@ class Node:
         return 0
         # return self._attributes["col_offset"]
 
+    def get_parts(self):
+        return self._json["parts"]
+
 
 @frozen
 class Expr(Node):

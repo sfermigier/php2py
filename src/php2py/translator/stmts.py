@@ -3,12 +3,9 @@ import ast as py
 
 from devtools import debug
 
-from php2py.ast_utils import print_ast
 from php2py.php_ast import (
-    Arg,
     Expr_Yield,
     Name,
-    Node,
     Stmt_Break,
     Stmt_Class,
     Stmt_ClassConst,
@@ -76,7 +73,7 @@ class StmtTranslator(ExprTranslator):
                 return self.translate(uses)
 
             case Stmt_UseUse(name, alias, type):
-                parts = name._json["parts"]
+                parts = name.get_parts()
                 if alias:
                     raise NotImplementedError("use with alias")
                 else:
@@ -223,7 +220,7 @@ class StmtTranslator(ExprTranslator):
                     extends = [extends]
                 bases = []
                 for base_class in extends:
-                    base_class_name = base_class._json["parts"][0]
+                    base_class_name = base_class.get_parts()[0]
                     bases.append(py.Name(base_class_name, py.Load()))
 
                 body = [to_stmt(self.translate(stmt)) for stmt in stmts]
@@ -260,7 +257,7 @@ class StmtTranslator(ExprTranslator):
                     extends = [extends]
                 bases = []
                 for base_class in extends:
-                    base_class_name = base_class._json["parts"][0]
+                    base_class_name = base_class.get_parts()[0]
                     bases.append(py.Name(base_class_name, py.Load()))
 
                 body = [to_stmt(self.translate_stmt(stmt)) for stmt in stmts]
@@ -533,19 +530,3 @@ class StmtTranslator(ExprTranslator):
                 raise NotImplementedError(
                     f"Don't know how to translate node {node.__class__}"
                 )
-
-    def build_args(self, php_args: list[Node]):
-        args = []
-        kwargs = []
-        for arg in php_args:
-            match arg:
-                case Arg(name=None, value=value):
-                    args.append(self.translate(value))
-
-                case Arg(name=name, value=value):
-                    kwargs.append(py.keyword(arg=name, value=self.translate(value)))
-
-                case _:
-                    raise NotImplementedError("Should not happen")
-
-        return args, kwargs
