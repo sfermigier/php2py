@@ -32,11 +32,8 @@ def test_assignment_ops():
     expected = dedent(
         """\
         a += 5
-
         b -= 6
-
         c += d
-
         e ^= f    
     """
     )

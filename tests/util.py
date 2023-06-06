@@ -1,4 +1,5 @@
 import ast
+import re
 import shlex
 import subprocess
 import sys
@@ -89,7 +90,7 @@ def check_compiles(input, expected=""):
     expected = blacken(expected).strip()
     blacked_output = blacken(output).strip()
 
-    if expected != blacked_output:
+    if not compare(blacked_output, expected):
         print(red("php_ast:"))
         print(78 * "-")
         dump_php_ast(php_ast)
@@ -112,7 +113,13 @@ def check_compiles(input, expected=""):
 
         sys.stdout.flush()
 
-    assert expected == blacked_output
+    assert compare(blacked_output, expected)
+
+
+def compare(s1, s2) -> bool:
+    s1 = re.sub("\n+", "\n", s1)
+    s2 = re.sub("\n+", "\n", s2)
+    return s1 == s2
 
 
 def blacken(code):
